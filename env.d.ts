@@ -1,20 +1,15 @@
 declare namespace NodeJS {
   interface ProcessEnv {
-    // Public (client-safe) variants
-    NEXT_PUBLIC_SANITY_PROJECT_ID: string;
-    NEXT_PUBLIC_SANITY_DATASET: string;
+    // Database
+    DATABASE_URL: string;
 
-    // Server-side only
-    SANITY_API_PROJECT_ID: string;
-    SANITY_API_DATASET: string;
-    SANITY_STUDIO_PROJECT_ID?: string;
-    SANITY_STUDIO_DATASET?: string;
-    SANITY_API_READ_TOKEN?: string;
-    SANITY_API_WRITE_TOKEN?: string;
+    // Auth.js / NextAuth
+    AUTH_SECRET: string;
+    NEXTAUTH_URL?: string;
 
-    // Optional basic auth for /studio
-    STUDIO_BASIC_AUTH_USER?: string;
-    STUDIO_BASIC_AUTH_PASS?: string;
+    // Passkeys (WebAuthn)
+    AUTH_WEBAUTHN_RP_NAME: string; // e.g. "My Blog"
+    AUTH_WEBAUTHN_RP_ID: string;   // e.g. "my-domain.com"
+    AUTH_WEBAUTHN_ORIGIN: string;  // e.g. "https://my-domain.com"
   }
 }
-

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import '../styles/globals.css';
+import './globals.css';
 import { ThemeProvider } from 'next-themes';
 import ThemeRegistry from '@/components/ThemeRegistry';
 import Header from '@/components/Header';
@@ -17,7 +17,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ThemeRegistry>
-            <Header />
+            <div suppressHydrationWarning>
+              <Header />
+            </div>
             {children}
             <Footer />
           </ThemeRegistry>

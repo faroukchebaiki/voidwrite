@@ -8,8 +8,11 @@ import SearchIcon from '@mui/icons-material/Search';
 import { useTheme } from 'next-themes';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 export default function Header() {
+  const pathname = usePathname();
+  if (pathname?.startsWith('/admin')) return null;
   const { theme, setTheme, systemTheme } = useTheme();
   const mode = (theme === 'system' ? systemTheme : theme) === 'dark' ? 'dark' : 'light';
   const toggle = () => setTheme(mode === 'dark' ? 'light' : 'dark');
@@ -57,4 +60,3 @@ export default function Header() {
     </AppBar>
   );
 }
-

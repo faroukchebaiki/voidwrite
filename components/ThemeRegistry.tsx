@@ -3,7 +3,6 @@
 import * as React from 'react';
 import { CacheProvider } from '@emotion/react';
 import createCache from '@emotion/cache';
-import { useServerInsertedHTML } from 'next/navigation';
 import { ThemeProvider as MuiThemeProvider, CssBaseline } from '@mui/material';
 import { useTheme } from 'next-themes';
 import { getMuiTheme } from '@/lib/theme';
@@ -17,15 +16,9 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
   const { theme: resolvedTheme, systemTheme } = useTheme();
   const mode = (resolvedTheme === 'system' ? systemTheme : resolvedTheme) === 'dark' ? 'dark' : 'light';
 
-  useServerInsertedHTML(() => (
-    <style
-      id={cache.key}
-      data-emotion={`${cache.key} ${Object.keys(cache.inserted).join(' ')}`}
-      dangerouslySetInnerHTML={{
-        __html: Object.values(cache.inserted).join(' '),
-      }}
-    />
-  ));
+  // NOTE: Server-inserted Emotion styles can cause hydration mismatches
+  // when used inside client components. We rely on client-side injection
+  // to avoid SSR/client drift.
 
   return (
     <CacheProvider value={cache}>
@@ -36,4 +29,3 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
     </CacheProvider>
   );
 }
-

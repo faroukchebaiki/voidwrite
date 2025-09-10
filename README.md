@@ -1,61 +1,53 @@
-Voidwrite — Next.js + Sanity + MUI Blog
+Voidwrite — Next.js Blog CMS (Drizzle + Auth.js)
 =================================================
 
-Production-ready blog built with Next.js (App Router, TS), Sanity (CMS), MUI with a persistent light/dark toggle, and Vercel Analytics. Includes ISR, view counter, RSS, sitemap, and a Studio at `/studio`.
+Database-backed blog CMS with Next.js (App Router), Tailwind, Drizzle ORM, and Auth.js (Credentials + Passkeys). Includes admin dashboard, role-based access, RSS, and deploys to Vercel Hobby with Vercel Postgres (Neon).
 
 Quick Start
 - Install: `pnpm install`
+- Configure: copy `.env.example` → `.env.local` and fill values
+- Generate SQL: `pnpm db:generate`
+- Apply migrations: `pnpm db:migrate`
+- Seed (optional admin): `SEED_ADMIN_EMAIL=you@example.com SEED_ADMIN_PASSWORD=strongpass pnpm seed`
 - Dev: `pnpm dev` → http://localhost:3000
-- Studio: http://localhost:3000/studio (optionally protected by basic auth)
 
 Environment Variables
-Add these in `.env.local` (and in Vercel Project Settings). See Vercel/Sanity.io integration docs for variable meanings and setup details.
+Create `.env.local` (Vercel: Project Settings → Environment Variables)
 
-Public (client-safe)
-- `NEXT_PUBLIC_SANITY_PROJECT_ID`
-- `NEXT_PUBLIC_SANITY_DATASET`
+- `DATABASE_URL=postgres://<...>`
+- `AUTH_SECRET=<openssl rand -hex 32>`
+- `NEXTAUTH_URL=https://<your-vercel-url>` (use http://localhost:3000 locally)
+- `AUTH_WEBAUTHN_RP_NAME=My Blog`
+- `AUTH_WEBAUTHN_RP_ID=my-domain.com` (use `localhost` locally)
+- `AUTH_WEBAUTHN_ORIGIN=https://my-domain.com` (use `http://localhost:3000` locally)
 
-Server-only
-- `SANITY_API_PROJECT_ID`
-- `SANITY_API_DATASET`
-- `SANITY_STUDIO_PROJECT_ID` (optional; defaults to public vars)
-- `SANITY_STUDIO_DATASET` (optional; defaults to public vars)
-- `SANITY_API_READ_TOKEN` (optional; for server queries)
-- `SANITY_API_WRITE_TOKEN` (required to store view counts in Sanity)
-- `STUDIO_BASIC_AUTH_USER` and `STUDIO_BASIC_AUTH_PASS` (optional; protects `/studio`)
-
-Tech Stack
-- Next.js App Router + TypeScript, pnpm
-- Sanity (`@sanity/client`, `next-sanity`, `groq`)
-- MUI (`@mui/material`, `@emotion/*`) + `next-themes`
-- `@portabletext/react`, `@sanity/image-url`
-- `dayjs`, `zod`, `@vercel/analytics`
+Stack
+- Next.js (App Router, TS), TailwindCSS
+- Vercel Postgres (Neon) + `drizzle-orm`, `drizzle-kit`, `pg`
+- Auth.js v5 (beta) + Drizzle Adapter, providers: Credentials + Passkey
+- `argon2` for password hashing, `zod` for validation
+- Markdown via `markdown-it` + `sanitize-html`
 
 Features
-- Home: latest posts, “Top posts”, tag list
-- Post: title, meta (author/date/tags), cover image, rich body (Portable Text), view badge
-- Tag pages: list posts by tag
-- Sanity Studio at `/studio` with Post/Tag/Author/Settings
-- Dark/Light mode toggle (persistent, system default)
-- Responsive Sanity images via `next/image`
-- View counter API (`/api/views/[slug]`) storing counts in Sanity
-- RSS feed (`/rss.xml`) and sitemap (`/sitemap.xml`)
+- Public: `/` (published posts), `/posts/[slug]`, `/tags/[tag]`, `/rss.xml`
+- Auth: `/signup`, `/signin`, `/account` (manage password + passkeys)
+- Admin: `/admin`, `/admin/posts`, `/admin/posts/new`, `/admin/posts/[id]`, `/admin/settings`
+- Role-based access with middleware protecting `/admin/*` (admin/editor)
 
-Sanity Studio
-- Configure project and dataset in env vars
-- Schemas at `sanity/schemas/*`
-- Studio config at `sanity/sanity.config.ts`
-- Studio mounted at `app/studio/[[...index]]/page.tsx` (noindex; optional basic auth)
+Database & Migrations
+- Schema in `db/schema.ts` (CMS) and `db/auth-schema.ts` (Auth.js tables)
+- Config in `drizzle.config.ts`, SQL in `drizzle/`
+- Commands: `pnpm db:generate`, `pnpm db:migrate`
 
-Development Notes
-- Queries live in `lib/sanity.queries.ts` (GROQ)
-- Sanity client in `lib/sanity.client.ts`
-- MUI theme + next-themes in `lib/theme.ts` and `components/ThemeRegistry.tsx`
-- Env loader with zod at `lib/env.ts`
-- ISR: Pages export `revalidate = 60`
+Seed
+- `SEED_ADMIN_EMAIL=you@example.com SEED_ADMIN_PASSWORD=... pnpm seed`
+- Creates default settings and an admin user with hashed password
 
 Deploy on Vercel
-- Framework: Next.js, Build: `pnpm build`
-- Add the env vars above
-- Enable Vercel Web Analytics
-- Optional: set up a Sanity webhook to invoke Next revalidate on publish
+- Add Vercel Postgres (Neon) and set `DATABASE_URL`
+- Add Auth env vars above
+- Build: `pnpm build` (default Next.js)
+- Run `pnpm db:migrate` via Vercel deployment script or locally
+
+License
+- MIT (see `LICENSE`)

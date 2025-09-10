@@ -1,17 +1,22 @@
 import { NextResponse } from 'next/server';
-import { fetchAllPosts, fetchAllTags } from '@/lib/sanity.queries';
+import { db } from '@/db';
+import { posts, tags } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 export const revalidate = 300;
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const origin = `${url.protocol}//${url.host}`;
-  const [posts, tags] = await Promise.all([fetchAllPosts(), fetchAllTags()]);
+  const [allPosts, allTags] = await Promise.all([
+    db.select().from(posts).where(eq(posts.status, 'published' as any)),
+    db.select().from(tags),
+  ]);
 
   const urls: string[] = [
     `${origin}/`,
-    ...posts.map((p: any) => `${origin}/posts/${p.slug.current}`),
-    ...tags.map((t: any) => `${origin}/tag/${t.slug.current}`),
+    ...allPosts.map((p: any) => `${origin}/posts/${p.slug}`),
+    ...allTags.map((t: any) => `${origin}/tag/${t.slug}`),
   ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

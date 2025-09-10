@@ -1,27 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from './auth-middleware';
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (!pathname.startsWith('/studio')) return NextResponse.next();
+  if (!pathname.startsWith('/admin')) return NextResponse.next();
 
-  const user = process.env.STUDIO_BASIC_AUTH_USER;
-  const pass = process.env.STUDIO_BASIC_AUTH_PASS;
-  if (!user || !pass) return NextResponse.next();
-
-  const basicAuth = req.headers.get('authorization');
-  if (basicAuth) {
-    const authValue = basicAuth.split(' ')[1];
-    const [u, p] = atob(authValue).split(':');
-    if (u === user && p === pass) return NextResponse.next();
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  if (!session?.user || (role !== 'admin' && role !== 'editor')) {
+    const loginUrl = new URL('/signin', req.url);
+    return NextResponse.redirect(loginUrl);
   }
-
-  return new NextResponse('Authentication required.', {
-    status: 401,
-    headers: { 'WWW-Authenticate': 'Basic realm="Studio"' },
-  });
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/studio/:path*'],
+  matcher: ['/admin/:path*'],
 };
-
