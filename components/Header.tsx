@@ -12,12 +12,14 @@ import { usePathname } from 'next/navigation';
 
 export default function Header() {
   const pathname = usePathname();
-  if (pathname?.startsWith('/admin')) return null;
   const { theme, setTheme, systemTheme } = useTheme();
-  const mode = (theme === 'system' ? systemTheme : theme) === 'dark' ? 'dark' : 'light';
-  const toggle = () => setTheme(mode === 'dark' ? 'light' : 'dark');
   const [q, setQ] = useState('');
   const router = useRouter();
+  const isAdmin = pathname?.startsWith('/admin');
+  const mode = (theme === 'system' ? systemTheme : theme) === 'dark' ? 'dark' : 'light';
+  const toggle = () => setTheme(mode === 'dark' ? 'light' : 'dark');
+
+  if (isAdmin) return null;
 
   return (
     <AppBar position="sticky" color="default" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
