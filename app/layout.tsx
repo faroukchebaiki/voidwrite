@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import '../styles/theme.css';
 import { ThemeProvider } from 'next-themes';
-import ThemeRegistry from '@/components/ThemeRegistry';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Analytics } from '@vercel/analytics/react';
@@ -16,13 +16,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <ThemeRegistry>
-            <div suppressHydrationWarning>
-              <Header />
-            </div>
-            {children}
-            <Footer />
-          </ThemeRegistry>
+          <Header />
+          {children}
+          <Footer />
           <Analytics />
         </ThemeProvider>
       </body>

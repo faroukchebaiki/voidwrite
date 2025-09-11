@@ -19,7 +19,7 @@ export default function SignInPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await signIn("credentials", { email, password, callbackUrl: "/admin" });
+      await signIn("credentials", { email, password, callbackUrl: "/studio" });
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,7 @@ export default function SignInPage() {
         <button disabled={loading} className="w-full bg-black text-white rounded py-2">{loading? 'Signing in...' : 'Sign in'}</button>
       </form>
       <div className="my-4 text-center text-sm text-gray-500">or</div>
-      <button onClick={() => signIn("passkey", { callbackUrl: "/admin" })} className="w-full border rounded py-2">Continue with Passkey</button>
+      <button onClick={() => signIn("passkey", { callbackUrl: "/studio" })} className="w-full border rounded py-2">Continue with Passkey</button>
       <p className="text-sm text-gray-500 mt-4">No account? <Link href="/signup" className="underline">Sign up</Link></p>
     </main>
   );

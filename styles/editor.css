@@ -1,0 +1,65 @@
+/* Editor shell with dark glass and soft glows */
+.editor-shell {
+  position: relative;
+  padding: 16px;
+}
+.editor-card {
+  position: relative;
+  border: 1px solid hsl(var(--border));
+  background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.02);
+}
+.editor-card::before,
+.editor-card::after{
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  inset: -20%;
+  background: radial-gradient(600px 300px at 10% 110%, rgba(99,102,241,.12), transparent 60%),
+              radial-gradient(600px 300px at 90% -10%, rgba(147,51,234,.12), transparent 60%);
+  filter: blur(20px);
+  z-index: 0;
+}
+
+/* Toolbar */
+.editor-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  background: rgba(12,12,14,.7);
+  -webkit-backdrop-filter: saturate(130%) blur(10px);
+  backdrop-filter: saturate(130%) blur(10px);
+  border-bottom: 1px solid hsl(var(--border));
+}
+.editor-toolbar .group {
+  display: inline-flex; gap: 2px; padding: 2px; border: 1px solid hsl(var(--border)); border-radius: 10px; background: rgba(255,255,255,.02);
+}
+.editor-toolbar .tool {
+  font-size: 13px; line-height: 1; padding: 7px 10px; border-radius: 8px; color: hsl(var(--muted-foreground));
+}
+.editor-toolbar .tool:hover { background: rgba(255,255,255,.05); color: hsl(var(--foreground)); }
+.editor-toolbar .tool[data-active="true"] { background: rgba(99,102,241,.18); color: #c7d2fe; }
+
+/* Content */
+.ProseMirror {
+  position: relative;
+  z-index: 1;
+  padding: 24px;
+  min-height: 24rem;
+}
+.ProseMirror h1 { font-size: 1.875rem; font-weight: 700; margin: 1rem 0 .75rem; }
+.ProseMirror h2 { font-size: 1.5rem; font-weight: 700; margin: 1rem 0 .75rem; }
+.ProseMirror h3 { font-size: 1.25rem; font-weight: 600; margin: .75rem 0 .5rem; }
+.ProseMirror p { margin: .5rem 0; }
+.ProseMirror a { color: #6366f1; text-decoration: underline; }
+.ProseMirror hr { border: none; border-top: 1px solid hsl(var(--border)); margin: 1.25rem 0; }
+.ProseMirror code { background: rgba(99,102,241,.12); padding: 2px 6px; border-radius: 6px; }
+.ProseMirror pre { background: #0b0b10; color: #e5e7eb; padding: 12px 14px; border-radius: 10px; overflow: auto; }
+.ProseMirror img { max-width: 100%; border-radius: 12px; border:1px solid hsl(var(--border)); }
+.ProseMirror iframe { width: 100%; aspect-ratio: 16/9; border-radius: 12px; border:1px solid hsl(var(--border)); }

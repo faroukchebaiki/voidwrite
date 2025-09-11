@@ -3,7 +3,13 @@ import { auth } from './auth-middleware';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (!pathname.startsWith('/admin')) return NextResponse.next();
+  // Redirect legacy /admin to /studio
+  if (pathname.startsWith('/admin')) {
+    const url = new URL(req.url);
+    url.pathname = pathname.replace(/^\/admin/, '/studio');
+    return NextResponse.redirect(url);
+  }
+  if (!pathname.startsWith('/studio')) return NextResponse.next();
 
   const session = await auth();
   const role = (session?.user as any)?.role;
@@ -15,5 +21,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/studio/:path*'],
 };

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { db } from "@/db";
 import { posts } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -29,6 +30,11 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   const html = renderMarkdown(post.content);
   return (
     <main className="mx-auto max-w-3xl px-4 py-6">
+      {post.coverImageUrl && (
+        <div className="mb-4">
+          <Image src={post.coverImageUrl} alt={post.title} width={1200} height={630} className="w-full h-auto rounded" />
+        </div>
+      )}
       <h1 className="text-3xl font-semibold mb-2">{post.title}</h1>
       {post.excerpt && <p className="text-gray-500 mb-4">{post.excerpt}</p>}
       <div className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: html }} />

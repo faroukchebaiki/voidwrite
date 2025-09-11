@@ -11,5 +11,8 @@ declare namespace NodeJS {
     AUTH_WEBAUTHN_RP_NAME: string; // e.g. "My Blog"
     AUTH_WEBAUTHN_RP_ID: string;   // e.g. "my-domain.com"
     AUTH_WEBAUTHN_ORIGIN: string;  // e.g. "https://my-domain.com"
+
+    // Vercel Blob
+    BLOB_READ_WRITE_TOKEN?: string;
   }
 }

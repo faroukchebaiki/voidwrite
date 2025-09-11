@@ -25,7 +25,7 @@ export default function SignUpPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || "Failed to sign up");
       }
-      await signIn("credentials", { email, password, callbackUrl: "/admin" });
+      await signIn("credentials", { email, password, callbackUrl: "/studio" });
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -67,7 +67,7 @@ export default function SignUpPage() {
         <button disabled={loading} className="w-full bg-black text-white rounded py-2">{loading? 'Creating…' : 'Create account'}</button>
       </form>
       <div className="my-4 text-center text-sm text-gray-500">or</div>
-      <button onClick={() => signIn("passkey", { callbackUrl: "/admin" })} className="w-full border rounded py-2">Continue with Passkey</button>
+      <button onClick={() => signIn("passkey", { callbackUrl: "/studio" })} className="w-full border rounded py-2">Continue with Passkey</button>
       <p className="text-sm text-gray-500 mt-4">Have an account? <Link href="/signin" className="underline">Sign in</Link></p>
     </main>
   );
