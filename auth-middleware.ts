@@ -1,10 +1,12 @@
 import NextAuth, { type NextAuthConfig } from "next-auth";
 
+const defaultOrigin = process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+const defaultRpId = (() => { try { return new URL(defaultOrigin).hostname; } catch { return "localhost"; } })();
 const env = {
   AUTH_SECRET: process.env.AUTH_SECRET || "",
-  AUTH_WEBAUTHN_RP_NAME: process.env.AUTH_WEBAUTHN_RP_NAME || "My Blog",
-  AUTH_WEBAUTHN_RP_ID: process.env.AUTH_WEBAUTHN_RP_ID || "localhost",
-  AUTH_WEBAUTHN_ORIGIN: process.env.AUTH_WEBAUTHN_ORIGIN || "http://localhost:3000",
+  AUTH_WEBAUTHN_RP_NAME: process.env.AUTH_WEBAUTHN_RP_NAME || "Voidwrite",
+  AUTH_WEBAUTHN_RP_ID: process.env.AUTH_WEBAUTHN_RP_ID || defaultRpId,
+  AUTH_WEBAUTHN_ORIGIN: process.env.AUTH_WEBAUTHN_ORIGIN || defaultOrigin,
 };
 
 export const authConfig = {

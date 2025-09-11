@@ -4,7 +4,7 @@ import { users } from "@/db/auth-schema";
 import { profiles } from "@/db/schema";
 import { signupSchema } from "@/lib/validation";
 import { eq } from "drizzle-orm";
-import argon2 from "argon2";
+import { hashPassword } from "@/lib/password";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     .values({ email: email.toLowerCase(), name: name || null })
     .returning();
 
-  const hash = await argon2.hash(password);
+  const hash = await hashPassword(password);
 
   const existingProfiles = await db.select().from(profiles).limit(1);
   const isFirst = existingProfiles.length === 0;
