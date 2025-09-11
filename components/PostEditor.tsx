@@ -4,7 +4,7 @@ import Link from "next/link";
 import RichEditor from "@/components/RichEditor";
 import Image from "next/image";
 
-export default function Editor({ initial }: { initial: any }) {
+export default function PostEditor({ initial }: { initial: any }) {
   const [title, setTitle] = useState(initial.title || "");
   const [slug, setSlug] = useState(initial.slug || "");
   const [excerpt, setExcerpt] = useState(initial.excerpt || "");
@@ -32,7 +32,7 @@ export default function Editor({ initial }: { initial: any }) {
   const onDelete = async () => {
     if (!confirm("Delete this post?")) return;
     const res = await fetch(`/api/posts/${initial.id}`, { method: "DELETE" });
-    if (res.ok) location.href = "/admin/posts";
+    if (res.ok) location.href = "/studio/posts";
   };
 
   return (
@@ -40,7 +40,7 @@ export default function Editor({ initial }: { initial: any }) {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Edit Post</h1>
         <div className="flex gap-2">
-          <Link href="/admin/posts" className="text-sm underline">Back</Link>
+          <Link href="/studio/posts" className="text-sm underline">Back</Link>
           <button onClick={onDelete} className="text-sm text-red-600">Delete</button>
         </div>
       </div>
@@ -85,3 +85,4 @@ export default function Editor({ initial }: { initial: any }) {
     </div>
   );
 }
+

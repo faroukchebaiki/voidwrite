@@ -9,7 +9,7 @@ export default function Header() {
   const { theme, setTheme, systemTheme } = useTheme();
   const [q, setQ] = useState('');
   const router = useRouter();
-  const isStudio = pathname?.startsWith('/admin') || pathname?.startsWith('/studio');
+  const isStudio = pathname?.startsWith('/studio');
   const mode = (theme === 'system' ? systemTheme : theme) === 'dark' ? 'dark' : 'light';
   const toggle = () => setTheme(mode === 'dark' ? 'light' : 'dark');
 
@@ -41,4 +41,3 @@ export default function Header() {
     </header>
   );
 }
-

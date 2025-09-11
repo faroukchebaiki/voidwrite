@@ -24,5 +24,5 @@ export async function DELETE(req: Request) {
   await db.delete(authenticators).where(
     and(eq(authenticators.userId, uid), eq(authenticators.credentialID, credentialID))
   );
-  return NextResponse.redirect(new URL("/account", req.url));
+  return NextResponse.redirect(new URL("/studio", req.url));
 }

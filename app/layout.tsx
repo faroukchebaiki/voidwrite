@@ -4,11 +4,11 @@ import '../styles/theme.css';
 import { ThemeProvider } from 'next-themes';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Analytics } from '@vercel/analytics/react';
+import { Analytics } from '@/lib/analytics';
 
 export const metadata: Metadata = {
   title: 'Voidwrite Blog',
-  description: 'A fast, modern blog built with Next.js + Sanity + MUI',
+  description: 'A fast, modern blog built with Next.js + Drizzle + Auth.js',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

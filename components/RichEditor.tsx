@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import '@/styles/editor.css';
 import { useEditor, EditorContent } from "@tiptap/react";
 import { BubbleMenu, FloatingMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";

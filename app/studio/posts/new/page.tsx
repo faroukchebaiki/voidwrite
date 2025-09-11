@@ -7,7 +7,6 @@ import dayjs from "dayjs";
 
 export default function NewPostPage() {
   const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [content, setContent] = useState("");
@@ -22,7 +21,7 @@ export default function NewPostPage() {
   const submit = async (publish: boolean) => {
     setSaving(true);
     try {
-      const effSlug = slug || genSlug();
+      const effSlug = genSlug();
       const res = await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { posts } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import Editor from "@/app/admin/posts/[id]/Editor";
+import PostEditor from "@/components/PostEditor";
 
 export default async function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: idParam } = await params;
@@ -11,8 +11,7 @@ export default async function EditPostPage({ params }: { params: Promise<{ id: s
   if (!post) notFound();
   return (
     <main>
-      <Editor initial={post as any} />
+      <PostEditor initial={post as any} />
     </main>
   );
 }
-

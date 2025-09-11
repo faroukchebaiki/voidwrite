@@ -16,5 +16,5 @@ export async function POST(req: Request) {
     .insert(profiles)
     .values({ userId: uid, passwordHash: hash, role: 'editor' as any })
     .onConflictDoUpdate({ target: profiles.userId, set: { passwordHash: hash } });
-  return NextResponse.redirect(new URL("/account", req.url));
+  return NextResponse.redirect(new URL("/studio", req.url));
 }
