@@ -48,7 +48,13 @@ export default function PostEditor({ initial }: { initial: any }) {
         <div className="space-y-3">
           <div>
             <label className="block text-sm mb-1">Title</label>
-            <input className="w-full border rounded px-3 py-2" value={title} onChange={(e)=>setTitle(e.target.value)} />
+            <input
+              className="w-full border rounded px-3 py-2"
+              value={title}
+              onChange={(e)=>setTitle(e.target.value)}
+              placeholder="Write a clear, short title…"
+              aria-label="Post title"
+            />
           </div>
           <div>
             <label className="block text-sm mb-1">Slug</label>
@@ -56,7 +62,13 @@ export default function PostEditor({ initial }: { initial: any }) {
           </div>
           <div>
             <label className="block text-sm mb-1">Excerpt</label>
-            <input className="w-full border rounded px-3 py-2" value={excerpt} onChange={(e)=>setExcerpt(e.target.value)} />
+            <input
+              className="w-full border rounded px-3 py-2"
+              value={excerpt}
+              onChange={(e)=>setExcerpt(e.target.value)}
+              placeholder="Brief summary of the post"
+              aria-label="Short description"
+            />
           </div>
           <div>
             <label className="block text-sm mb-1">Cover image URL</label>
@@ -85,4 +97,3 @@ export default function PostEditor({ initial }: { initial: any }) {
     </div>
   );
 }
-

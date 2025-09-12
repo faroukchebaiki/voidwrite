@@ -24,12 +24,16 @@ export default function RichEditor({ initialHTML = "", onChange }: { initialHTML
       Link.configure({ openOnClick: true, autolink: true, linkOnPaste: true }),
       Image.configure({ inline: false }),
       Youtube.configure({ controls: true, nocookie: true, modestBranding: true }),
-      Placeholder.configure({ placeholder: 'Start typing or use / for commands…' }),
+      Placeholder.configure({ placeholder: 'Start writing…' }),
     ],
-    content: initialHTML || "<h2>Start writing…</h2>",
+    content: initialHTML || "",
     immediatelyRender: false,
     onUpdate: ({ editor }) => onChange?.(editor.getHTML()),
-    editorProps: { attributes: { class: "prose dark:prose-invert max-w-none focus:outline-none min-h-[16rem] p-3 border rounded" } },
+    editorProps: {
+      attributes: {
+        class: "prose dark:prose-invert max-w-none focus:outline-none min-h-[16rem] p-2 sm:p-3 border rounded-md sm:rounded-lg"
+      }
+    },
   }, [mounted]);
 
   const insertHeading = (level: 1 | 2 | 3) => editor?.chain().focus().toggleHeading({ level }).run();
@@ -108,12 +112,12 @@ export default function RichEditor({ initialHTML = "", onChange }: { initialHTML
               return text.trim().startsWith('/') || (!text.trim() && $from.parent.content.size === 0);
             }}>
               <div className="group">
-                <button className="tool" onClick={() => insertHeading(1)}>H1</button>
-                <button className="tool" onClick={() => insertHeading(2)}>H2</button>
-                <button className="tool" onClick={() => insertHeading(3)}>H3</button>
-                <button className="tool" onClick={toggleCodeBlock}>Code</button>
-                <button className="tool" onClick={onPickImage}>Image</button>
-                <button className="tool" onClick={insertYouTube}>YouTube</button>
+                <button className="tool" title="Heading 1" onClick={() => insertHeading(1)}><Heading1 size={14} /></button>
+                <button className="tool" title="Heading 2" onClick={() => insertHeading(2)}><Heading2 size={14} /></button>
+                <button className="tool" title="Heading 3" onClick={() => insertHeading(3)}><Heading3 size={14} /></button>
+                <button className="tool" title="Code block" onClick={toggleCodeBlock}><TerminalSquare size={14} /></button>
+                <button className="tool" title="Image" onClick={onPickImage}><ImageIcon size={14} /></button>
+                <button className="tool" title="YouTube" onClick={insertYouTube}><YoutubeIcon size={14} /></button>
               </div>
             </FloatingMenu>
           </>

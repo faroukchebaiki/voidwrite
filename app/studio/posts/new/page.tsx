@@ -1,6 +1,5 @@
 "use client";
-import { useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import RichEditor from "@/components/RichEditor";
 import Image from "next/image";
 import dayjs from "dayjs";
@@ -37,6 +36,18 @@ export default function NewPostPage() {
   const onSave = () => submit(false);
   const onPublish = () => submit(true);
 
+  // Listen for header actions (Save/Publish)
+  useEffect(() => {
+    const handleSave = () => onSave();
+    const handlePublish = () => onPublish();
+    window.addEventListener('voidwrite:save', handleSave);
+    window.addEventListener('voidwrite:publish', handlePublish);
+    return () => {
+      window.removeEventListener('voidwrite:save', handleSave);
+      window.removeEventListener('voidwrite:publish', handlePublish);
+    };
+  }, [title, excerpt, coverImageUrl, content]);
+
   const clickUpload = () => fileRef.current?.click();
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -49,22 +60,17 @@ export default function NewPostPage() {
     setCoverImageUrl(url);
   };
   return (
-    <div className="space-y-3">
-      <div className="sticky top-0 z-10 bg-[hsl(var(--background))]/80 backdrop-blur border-b">
-        <div className="mx-auto max-w-6xl px-4 h-14 flex items-center gap-3">
-          <h1 className="text-lg font-semibold">Write a blog</h1>
-          <div className="ml-auto flex items-center gap-2">
-            <button onClick={onSave} disabled={saving} className="px-3 py-1 border rounded text-sm">{saving ? 'Saving…' : 'Save'}</button>
-            <button onClick={onPublish} disabled={!requiredFilled || saving} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Publish</button>
-            <Link href="/studio/posts" className="text-sm underline">Back</Link>
-          </div>
-        </div>
-      </div>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="max-w-3xl mx-auto w-full space-y-3">
           <div>
             <label className="block text-sm mb-1">Title</label>
-            <input className="w-full border rounded px-3 py-2" value={title} onChange={(e)=>setTitle(e.target.value)} />
+            <input
+              className="w-full border rounded px-3 py-2"
+              value={title}
+              onChange={(e)=>setTitle(e.target.value)}
+              placeholder="Write a clear, short title…"
+              aria-label="Post title"
+            />
           </div>
           <div>
             <label className="block text-sm mb-1">Short description</label>
@@ -87,6 +93,5 @@ export default function NewPostPage() {
           <RichEditor initialHTML="" onChange={setContent} />
         </div>
       </div>
-    </div>
   );
 }

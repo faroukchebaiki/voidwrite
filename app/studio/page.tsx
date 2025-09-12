@@ -1,29 +1,20 @@
-import { auth } from "@/auth-app";
-import { db } from "@/db";
-import { posts } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { ChartAreaInteractive } from "@/components/chart-area-interactive";
+import { DataTable } from "@/components/data-table";
+import { SectionCards } from "@/components/section-cards";
+import data from "./data.json";
 
-export default async function StudioHome() {
-  const session = await auth();
-  const uid = (session?.user as any)?.id as string | undefined;
-  const total = (await db.select().from(posts)).length;
-  const mine = uid ? (await db.select().from(posts).where(eq(posts.authorId, uid))).length : 0;
+export default function StudioHome() {
   return (
-    <div className="space-y-3">
-      <h1 className="text-2xl font-semibold">Studio</h1>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="border rounded p-4">
-          <div className="text-sm text-gray-500">Total posts</div>
-          <div className="text-2xl font-semibold">{total}</div>
-        </div>
-        <div className="border rounded p-4">
-          <div className="text-sm text-gray-500">Your posts</div>
-          <div className="text-2xl font-semibold">{mine}</div>
+    <div className="flex flex-1 flex-col">
+      <div className="@container/main flex flex-1 flex-col gap-2">
+        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          <SectionCards />
+          <div className="px-4 lg:px-6">
+            <ChartAreaInteractive />
+          </div>
+          <DataTable data={data as any} />
         </div>
       </div>
     </div>
   );
 }
-
-export const dynamic = 'force-dynamic';
-

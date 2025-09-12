@@ -34,13 +34,12 @@ Stack
 Features
 - Public: `/` (published posts), `/posts/[slug]`, `/tag/[slug]`, `/rss.xml`, `/sitemap.xml`
 - Auth: `/signup`, `/signin` (redirects to Studio if already signed in)
-- Studio only: `/studio`, `/studio/posts`, `/studio/posts/new`, `/studio/posts/[id]`, `/studio/settings`
+- Studio: `/studio` (dashboard), `/studio/posts` (All blogs), `/studio/myblogs` (My blogs), `/studio/posts/new`, `/studio/posts/[id]`, `/studio/settings`
 - Role-based access (admin/editor) protected by middleware
 
 Folder Tree
 ```
 app/
-  account/                     Account management (passkeys, password)
   api/                         API routes (Auth, posts, tags, settings, upload)
   posts/[slug]/page.tsx        Public post page (Markdown rendered)
   rss.xml/route.ts             RSS feed
@@ -49,12 +48,15 @@ app/
   studio/                      Writer dashboard (Studio)
     layout.tsx                 Studio shell + nav
     page.tsx                   Overview (stats)
-    posts/, settings/          Studio sections
+    posts/                     All blogs + post routes
+    myblogs/                   My blogs list (filtered to current user)
+    settings/                  Site settings
   layout.tsx                   Root layout (theme, header/footer)
 components/
   Header.tsx, Footer.tsx       Public site header/footer
   RichEditor.tsx               TipTap-based editor for content
   PostEditor.tsx               Post editor used by Studio edit page
+  PostsTableClient.tsx         Data table for blogs (filters/sort/paging)
   SettingsForm.tsx             Settings form used by Studio
   SignOutButton.tsx            Client sign-out button
 db/

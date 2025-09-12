@@ -1,15 +1,24 @@
 /* Editor shell with dark glass and soft glows */
 .editor-shell {
   position: relative;
-  padding: 16px;
+  padding: 12px;
+}
+@media (max-width: 640px) {
+  .editor-shell {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
 }
 .editor-card {
   position: relative;
   border: 1px solid hsl(var(--border));
   background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
-  border-radius: 18px;
+  border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.02);
+}
+@media (max-width: 640px) {
+  .editor-card { border-radius: 10px; }
 }
 .editor-card::before,
 .editor-card::after{
@@ -26,25 +35,31 @@
 /* Toolbar */
 .editor-toolbar {
   position: sticky;
-  top: 0;
-  z-index: 5;
+  top: calc(var(--studio-header, 48px) + 8px);
+  z-index: 30;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  overflow-x: auto;
   gap: 6px;
   padding: 6px;
-  background: rgba(12,12,14,.7);
-  -webkit-backdrop-filter: saturate(130%) blur(10px);
-  backdrop-filter: saturate(130%) blur(10px);
+  background: hsl(var(--card));
+  -webkit-backdrop-filter: saturate(120%) blur(6px);
+  backdrop-filter: saturate(120%) blur(6px);
   border-bottom: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.04);
 }
+.dark .editor-toolbar { background: rgba(12,12,14,.65); }
 .editor-toolbar .group {
-  display: inline-flex; gap: 2px; padding: 2px; border: 1px solid hsl(var(--border)); border-radius: 10px; background: rgba(255,255,255,.02);
+  display: inline-flex; gap: 2px; padding: 2px; border: 1px solid hsl(var(--border)); border-radius: 10px; background: hsl(var(--muted));
 }
+.dark .editor-toolbar .group { background: rgba(255,255,255,.04); }
 .editor-toolbar .tool {
-  font-size: 13px; line-height: 1; padding: 7px 10px; border-radius: 8px; color: hsl(var(--muted-foreground));
+  font-size: 13px; line-height: 1; padding: 7px 10px; border-radius: 8px; color: hsl(var(--foreground));
 }
-.editor-toolbar .tool:hover { background: rgba(255,255,255,.05); color: hsl(var(--foreground)); }
-.editor-toolbar .tool[data-active="true"] { background: rgba(99,102,241,.18); color: #c7d2fe; }
+.editor-toolbar .tool:hover { background: hsl(var(--secondary)); color: hsl(var(--foreground)); }
+.editor-toolbar .tool[data-active="true"] { background: rgba(99,102,241,.18); color: hsl(var(--foreground)); }
 
 /* Content */
 .ProseMirror {
@@ -52,6 +67,13 @@
   z-index: 1;
   padding: 24px;
   min-height: 24rem;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+  float: left;
 }
 .ProseMirror h1 { font-size: 1.875rem; font-weight: 700; margin: 1rem 0 .75rem; }
 .ProseMirror h2 { font-size: 1.5rem; font-weight: 700; margin: 1rem 0 .75rem; }
