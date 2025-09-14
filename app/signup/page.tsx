@@ -8,6 +8,7 @@ export default function SignUpPage() {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<'admin' | 'editor' | ''>('');
+  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +20,7 @@ export default function SignUpPage() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name, password, role: role || undefined }),
+        body: JSON.stringify({ email, name, password, role: role || undefined, inviteCode }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -48,6 +49,10 @@ export default function SignUpPage() {
         <div>
           <label className="block text-sm mb-1">Password</label>
           <input className="w-full border rounded px-3 py-2" type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Invitation code</label>
+          <input className="w-full border rounded px-3 py-2" value={inviteCode} onChange={(e)=>setInviteCode(e.target.value)} placeholder="Paste invite code" required />
         </div>
         <div>
           <label className="block text-sm mb-1">Role</label>

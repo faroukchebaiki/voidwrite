@@ -57,7 +57,7 @@ components/
   RichEditor.tsx               TipTap-based editor for content
   PostEditor.tsx               Post editor used by Studio edit page
   PostsTableClient.tsx         Data table for blogs (filters/sort/paging)
-  SettingsForm.tsx             Settings form used by Studio
+  SettingsSingle.tsx           Settings page (Profile, Security, Theme)
   SignOutButton.tsx            Client sign-out button
 db/
   schema.ts                    CMS tables (posts, tags, settings, profiles)

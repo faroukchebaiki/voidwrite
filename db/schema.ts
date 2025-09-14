@@ -70,3 +70,13 @@ export const webauthnCredentials = pgTable("webauthn_credentials", {
 }, (table) => ({
   credIdUnique: uniqueIndex("webauthn_credential_id_unique").on(table.credentialId),
 }));
+
+// Invitation codes for staff onboarding
+export const invites = pgTable("invites", {
+  code: text("code").primaryKey(),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
+  usedBy: text("used_by"),
+  usedAt: timestamp("used_at", { withTimezone: false }),
+  expiresAt: timestamp("expires_at", { withTimezone: false }),
+});

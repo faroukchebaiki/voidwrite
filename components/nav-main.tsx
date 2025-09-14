@@ -23,6 +23,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
     if (pathname === '/studio/posts/new') return 'new';
     if (pathname === '/studio/myblogs') return 'my';
     if (pathname === '/studio/posts') return 'all';
+    if (pathname === '/studio/invite') return 'invite';
     return undefined;
   })();
   // Ensure only one item is active at a time

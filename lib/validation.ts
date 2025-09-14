@@ -30,6 +30,7 @@ export const signupSchema = z.object({
   password: z.string().min(8).max(100),
   // allow choosing admin or author (editor)
   role: z.enum(["admin", "editor"]).optional(),
+  inviteCode: z.string().min(6).max(64).optional(),
 });
 
 export type CreatePostInput = z.infer<typeof createPostSchema>;

@@ -19,7 +19,7 @@ const data = {
   user: {
     name: "Voidwrite",
     email: "studio@voidwrite.local",
-    avatar: "/avatars/shadcn.jpg",
+    avatar: "https://github.com/shadcn.png",
   },
   navMain: [
     { key: 'dashboard', title: "Dashboard", url: "/studio", icon: LayoutDashboardIcon },
@@ -27,6 +27,7 @@ const data = {
     { key: 'new', title: "New Post", url: "/studio/posts/new", icon: PlusCircleIcon },
     { key: 'my', title: "My blogs", url: "/studio/myblogs", icon: ListIcon },
     { key: 'all', title: "All blogs", url: "/studio/posts", icon: FileTextIcon },
+    { key: 'invite', title: "Invite", url: "/studio/invite", icon: PlusCircleIcon },
   ],
 }
 

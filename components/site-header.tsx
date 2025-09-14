@@ -9,12 +9,15 @@ export function SiteHeader() {
   const isNewPost = pathname === "/studio/posts/new";
   const isPostsList = pathname === "/studio/posts" || pathname === "/studio/myblogs";
   const isEditPost = pathname.startsWith("/studio/posts/") && !isNewPost;
+  const isSettings = pathname.startsWith("/studio/settings");
   const title = isNewPost
     ? "New Post"
     : isPostsList
     ? (pathname === "/studio/myblogs" ? "My blogs" : "All blogs")
     : isEditPost
     ? "Edit Post"
+    : isSettings
+    ? "Settings"
     : "Studio";
   const emit = (name: string) => typeof window !== 'undefined' && window.dispatchEvent(new CustomEvent(name));
   return (
