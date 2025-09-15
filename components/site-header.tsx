@@ -7,17 +7,20 @@ import { Button } from "@/components/ui/button";
 export function SiteHeader() {
   const pathname = usePathname();
   const isNewPost = pathname === "/studio/posts/new";
-  const isPostsList = pathname === "/studio/posts" || pathname === "/studio/myblogs";
+  const isPostsList = pathname === "/studio/posts" || pathname === "/studio/my-blogs";
   const isEditPost = pathname.startsWith("/studio/posts/") && !isNewPost;
   const isSettings = pathname.startsWith("/studio/settings");
+  const isTags = pathname === "/studio/tags";
   const title = isNewPost
     ? "New Post"
     : isPostsList
-    ? (pathname === "/studio/myblogs" ? "My blogs" : "All blogs")
+    ? (pathname === "/studio/my-blogs" ? "My Posts" : "All Posts")
     : isEditPost
     ? "Edit Post"
     : isSettings
     ? "Settings"
+    : isTags
+    ? "Tags"
     : "Studio";
   const emit = (name: string) => typeof window !== 'undefined' && window.dispatchEvent(new CustomEvent(name));
   return (

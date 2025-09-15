@@ -5,13 +5,14 @@ export const createPostSchema = z.object({
   slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/),
   excerpt: z.string().max(500).optional().nullable(),
   content: z.string().min(1),
-  status: z.enum(["draft", "published"]).default("draft"),
+  status: z.enum(["draft", "submitted", "published"]).default("draft"),
   coverImageUrl: z.string().url().optional().nullable(),
   tags: z.array(z.string()).optional().default([]), // tag slugs
   publishedAt: z.string().datetime().optional().nullable(),
 });
 
 export const updatePostSchema = createPostSchema.partial();
+export const updatePostWithAdminSchema = updatePostSchema.extend({ adminNote: z.string().max(2000).optional() });
 
 export const tagSchema = z.object({
   name: z.string().min(1).max(50),
@@ -31,6 +32,16 @@ export const signupSchema = z.object({
   // allow choosing admin or author (editor)
   role: z.enum(["admin", "editor"]).optional(),
   inviteCode: z.string().min(6).max(64).optional(),
+});
+
+export const assignPostSchema = z.object({ assignedTo: z.string().uuid() });
+export const changeRoleSchema = z.object({ role: z.enum(["admin","editor"]) });
+export const profileSchema = z.object({
+  firstName: z.string().max(100).optional().nullable(),
+  lastName: z.string().max(100).optional().nullable(),
+  bio: z.string().max(500).optional().nullable(),
+  link: z.string().url().optional().nullable(),
+  username: z.string().min(3).max(32).regex(/^[a-z0-9_]+$/).optional(),
 });
 
 export type CreatePostInput = z.infer<typeof createPostSchema>;

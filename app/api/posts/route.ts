@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { posts, postTags, tags } from "@/db/schema";
 import { desc, inArray } from "drizzle-orm";
 import { createPostSchema } from "@/lib/validation";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 
 export async function GET() {
   const rows = await db.select().from(posts).orderBy(desc(posts.publishedAt ?? posts.createdAt));
@@ -11,7 +11,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const user = await requireAdmin();
+  const user = await requireStaff();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
   const body = await req.json();
   const parsed = createPostSchema.safeParse(body);
@@ -29,6 +29,11 @@ export async function POST(req: Request) {
       status: data.status,
       coverImageUrl: data.coverImageUrl || null,
       authorId: (user as any).id,
+      createdBy: (user as any).id,
+      assignedTo: null,
+      submittedAt: null,
+      approvedBy: null,
+      approvedAt: null,
       publishedAt: data.status === "published" ? data.publishedAt ? new Date(data.publishedAt) : now : null,
       createdAt: now,
       updatedAt: now,

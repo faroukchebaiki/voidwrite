@@ -10,6 +10,7 @@ import Youtube from "@tiptap/extension-youtube";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Bold, Italic, Underline as UnderlineIcon, Code, Heading1, Heading2, Heading3, Undo2, Redo2, Link as LinkIcon, Image as ImageIcon, Youtube as YoutubeIcon, TerminalSquare } from "lucide-react";
 import '@/styles/editor.css';
+import { toast } from 'sonner';
 
 export default function RichEditor({ initialHTML = "", onChange }: { initialHTML?: string; onChange?: (html: string) => void; }) {
   const [mounted, setMounted] = useState(false);
@@ -58,7 +59,7 @@ export default function RichEditor({ initialHTML = "", onChange }: { initialHTML
       const { url } = await res.json();
       editor?.chain().focus().setImage({ src: url, alt: f.name }).run();
     } catch (e: any) {
-      alert(e.message || 'Upload error');
+      toast.error(e.message || 'Upload error');
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';

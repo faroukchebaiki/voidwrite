@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
+import { toast } from "sonner";
 
 type Passkey = { credentialID: string; counter: number };
 
@@ -18,14 +19,22 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
   const [social, setSocial] = useState<string>("");
 
   useEffect(() => {
-    try {
-      const av = localStorage.getItem('profile_avatar_url'); if (av) setAvatarUrl(av);
-      const f = localStorage.getItem('profile_first'); if (f) setFirst(f);
-      const l = localStorage.getItem('profile_last'); if (l) setLast(l);
-      const u = localStorage.getItem('profile_username'); if (u) setUsername(u);
-      const b = localStorage.getItem('profile_bio'); if (b) setBio(b);
-      const sl = localStorage.getItem('profile_link'); if (sl) setSocial(sl);
-    } catch {}
+    (async () => {
+      try {
+        const av = localStorage.getItem('profile_avatar_url'); if (av) setAvatarUrl(av);
+        const res = await fetch('/api/profile', { cache: 'no-store' });
+        if (res.ok) {
+          const p = await res.json();
+          if (p) {
+            setFirst(p.firstName || '');
+            setLast(p.lastName || '');
+            setUsername(p.username || '');
+            setBio(p.bio || '');
+            setSocial(p.link || '');
+          }
+        }
+      } catch {}
+    })();
   }, []);
 
   const clickUpload = () => fileRef.current?.click();
@@ -41,22 +50,18 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
       setAvatarUrl(url);
       try { localStorage.setItem('profile_avatar_url', url); } catch {}
       // notify sidebar avatar to update via storage event
-    } catch (err) { alert((err as any)?.message || 'Upload error'); }
+    } catch (err) { toast.error((err as any)?.message || 'Upload error'); }
     finally { setUploading(false); if (fileRef.current) fileRef.current.value = ''; }
   };
 
-  const onSaveProfile = () => {
-    try {
-      localStorage.setItem('profile_first', first);
-      localStorage.setItem('profile_last', last);
-      localStorage.setItem('profile_username', username);
-      localStorage.setItem('profile_bio', bio);
-      localStorage.setItem('profile_link', social);
-      alert('Profile saved locally');
-    } catch {}
+  const onSaveProfile = async () => {
+    const res = await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ firstName: first, lastName: last, username, bio, link: social }) });
+    if (!res.ok) { toast.error('Failed to save'); return; }
+    toast.success('Profile saved');
   };
 
   const { theme, setTheme } = useTheme();
+  const setCookieTheme = (val: 'light'|'dark'|'system') => { try { document.cookie = `vw_theme=${val}; Max-Age=${60*60*24*365}; Path=/`; } catch {} };
   const [themeMounted, setThemeMounted] = useState(false);
   useEffect(() => setThemeMounted(true), []);
   const currentEmail = account?.email || "unknown@example.com";
@@ -110,21 +115,7 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
       {/* Security */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Security</h2>
-        <div className="space-y-2">
-          <div className="text-sm text-muted-foreground">Current email: <span className="text-foreground">{currentEmail}</span></div>
-          <form method="post" action="/api/account/email" className="flex gap-2 max-w-md">
-            <input className="flex-1 border rounded px-3 py-2" type="email" name="email" placeholder="new@email.com" required />
-            <button className="px-3 py-2 border rounded">Change email</button>
-          </form>
-        </div>
-        <div className="space-y-2">
-          <div className="text-sm font-medium">Password</div>
-          <form method="post" action="/api/account/password" className="flex gap-2 max-w-md">
-            <input className="flex-1 border rounded px-3 py-2" type="password" name="password" placeholder="New password" required />
-            <button className="px-3 py-2 border rounded">Change password</button>
-          </form>
-          <p className="text-xs text-muted-foreground">Password last changed: not tracked yet.</p>
-        </div>
+        <EmailPasswordClient />
         <div className="space-y-2">
           <div className="text-sm font-medium">Passkeys</div>
           <p className="text-sm text-muted-foreground">You can register up to 5. You currently have {list.length}.</p>
@@ -149,11 +140,47 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">Theme</h2>
         <div className="flex gap-2">
-          <button className="px-3 py-1 border rounded text-sm data-[active=true]:bg-muted" data-active={(themeMounted && theme==='light') ? true : undefined} onClick={() => setTheme('light')}>Light</button>
-          <button className="px-3 py-1 border rounded text-sm data-[active=true]:bg-muted" data-active={(themeMounted && theme==='dark') ? true : undefined} onClick={() => setTheme('dark')}>Dark</button>
-          <button className="px-3 py-1 border rounded text-sm data-[active=true]:bg-muted" data-active={(themeMounted && theme==='system') ? true : undefined} onClick={() => setTheme('system')}>System</button>
+          <button className="px-3 py-1 border rounded text-sm data-[active=true]:bg-muted" data-active={(themeMounted && theme==='light') ? true : undefined} onClick={() => { setCookieTheme('light'); setTheme('light'); }}>Light</button>
+          <button className="px-3 py-1 border rounded text-sm data-[active=true]:bg-muted" data-active={(themeMounted && theme==='dark') ? true : undefined} onClick={() => { setCookieTheme('dark'); setTheme('dark'); }}>Dark</button>
+          <button className="px-3 py-1 border rounded text-sm data-[active=true]:bg-muted" data-active={(themeMounted && theme==='system') ? true : undefined} onClick={() => { setCookieTheme('system'); setTheme('system'); }}>System</button>
         </div>
       </section>
     </div>
+  );
+}
+
+function EmailPasswordClient() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const onEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const fd = new FormData(); fd.append('email', email);
+    const res = await fetch('/api/account/email', { method: 'POST', body: fd });
+    if (res.ok) { try { const { toast } = await import('sonner'); toast.success('Email updated'); } catch {}; } else { try { const { toast } = await import('sonner'); toast.error('Failed to update email'); } catch {} }
+  };
+  const onPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const fd = new FormData(); fd.append('password', password);
+    const res = await fetch('/api/account/password', { method: 'POST', body: fd });
+    if (res.ok) { try { const { toast } = await import('sonner'); toast.success('Password changed'); } catch {}; setPassword(''); } else { try { const { toast } = await import('sonner'); toast.error('Failed to change password'); } catch {} }
+  };
+  return (
+    <>
+      <div className="space-y-2">
+        <div className="text-sm font-medium">Email</div>
+        <form onSubmit={onEmail} className="flex gap-2 max-w-md">
+          <input className="flex-1 border rounded px-3 py-2" type="email" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="new@email.com" required />
+          <button className="px-3 py-2 border rounded">Change email</button>
+        </form>
+      </div>
+      <div className="space-y-2">
+        <div className="text-sm font-medium">Password</div>
+        <form onSubmit={onPassword} className="flex gap-2 max-w-md">
+          <input className="flex-1 border rounded px-3 py-2" type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="New password" required />
+          <button className="px-3 py-2 border rounded">Change password</button>
+        </form>
+        <p className="text-xs text-muted-foreground">Password last changed: not tracked yet.</p>
+      </div>
+    </>
   );
 }

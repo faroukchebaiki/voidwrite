@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { posts } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { renderMarkdown } from "@/lib/markdown";
+import ViewTracker from "@/components/ViewTracker";
 
 export const revalidate = 60;
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   const html = renderMarkdown(post.content);
   return (
     <main className="mx-auto max-w-3xl px-4 py-6">
+      <ViewTracker slug={slug} />
       {post.coverImageUrl && (
         <div className="mb-4">
           <Image src={post.coverImageUrl} alt={post.title} width={1200} height={630} className="w-full h-auto rounded" />

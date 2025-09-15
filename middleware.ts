@@ -21,6 +21,13 @@ export async function middleware(req: NextRequest) {
     const loginUrl = new URL('/signin', req.url);
     return NextResponse.redirect(loginUrl);
   }
+  // Admin-only sections: all posts list, tags, invite, members, pending
+  const adminOnly = ['/studio/posts', '/studio/tags', '/studio/invite', '/studio/members', '/studio/pending'];
+  if (adminOnly.some((p)=> pathname === p || pathname.startsWith(p + '/'))) {
+    if (role !== 'admin') {
+      return NextResponse.redirect(new URL('/studio/my-blogs', req.url));
+    }
+  }
   return NextResponse.next();
 }
 

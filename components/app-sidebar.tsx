@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { BellIcon, FileTextIcon, LayoutDashboardIcon, ListIcon, PlusCircleIcon } from "lucide-react"
+import { BellIcon, FileTextIcon, LayoutDashboardIcon, ListIcon, PlusCircleIcon, Tag as TagIcon, AlertCircle } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -25,13 +25,19 @@ const data = {
     { key: 'dashboard', title: "Dashboard", url: "/studio", icon: LayoutDashboardIcon },
     { key: 'notifications', title: "Notifications", url: "/studio/notifications", icon: BellIcon },
     { key: 'new', title: "New Post", url: "/studio/posts/new", icon: PlusCircleIcon },
-    { key: 'my', title: "My blogs", url: "/studio/myblogs", icon: ListIcon },
-    { key: 'all', title: "All blogs", url: "/studio/posts", icon: FileTextIcon },
+    { key: 'pending', title: "Pending", url: "/studio/pending", icon: AlertCircle },
+    { key: 'my', title: "My Posts", url: "/studio/my-blogs", icon: ListIcon },
+    { key: 'all', title: "All Posts", url: "/studio/posts", icon: FileTextIcon },
+    { key: 'tags', title: "Tags", url: "/studio/tags", icon: TagIcon },
     { key: 'invite', title: "Invite", url: "/studio/invite", icon: PlusCircleIcon },
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ role, ...props }: { role?: string } & React.ComponentProps<typeof Sidebar>) {
+  const isAdmin = role === 'admin';
+  const nav = isAdmin
+    ? data.navMain
+    : data.navMain.filter((i) => ['dashboard','new','my','notifications','settings'].includes(String(i.key)));
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -53,7 +59,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <React.Suspense fallback={null}>
-          <NavMain items={data.navMain} />
+          <NavMain items={nav} />
         </React.Suspense>
       </SidebarContent>
       <SidebarFooter>

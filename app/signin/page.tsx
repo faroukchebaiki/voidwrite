@@ -29,8 +29,8 @@ export default function SignInPage() {
       <h1 className="text-2xl font-semibold mb-4">Sign in</h1>
       <form onSubmit={onSubmit} className="space-y-3">
         <div>
-          <label className="block text-sm mb-1">Email</label>
-          <input className="w-full border rounded px-3 py-2" type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required />
+          <label className="block text-sm mb-1">Email or Username</label>
+          <input className="w-full border rounded px-3 py-2" value={email} onChange={(e)=>setEmail(e.target.value)} required />
         </div>
         <div>
           <label className="block text-sm mb-1">Password</label>

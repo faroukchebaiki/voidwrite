@@ -33,19 +33,29 @@ export const authConfig = {
     Credentials({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        email: { label: "Email or Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
       authorize: async (creds) => {
-        const email = creds?.email?.toString().toLowerCase();
+        const identifier = creds?.email?.toString().toLowerCase();
         const password = creds?.password?.toString() ?? "";
-        if (!email || !password) return null;
+        if (!identifier || !password) return null;
 
-        const [user] = await db.select().from(users).where(eq(users.email, email));
+        let user: any | null = null;
+        if (identifier.includes('@')) {
+          const rows = await db.select().from(users).where(eq(users.email, identifier));
+          user = rows?.[0] || null;
+        } else {
+          const prof = (await db.select().from(profiles).where(eq(profiles.username, identifier)))?.[0];
+          if (prof) {
+            const rows = await db.select().from(users).where(eq(users.id, prof.userId));
+            user = rows?.[0] || null;
+          }
+        }
         if (!user) return null;
 
         const [profile] = await db.select().from(profiles).where(eq(profiles.userId, user.id));
-        if (!profile?.passwordHash) return null;
+        if (!profile?.passwordHash || profile.suspended) return null;
         const ok = await verifyPassword(profile.passwordHash, password);
         if (!ok) return null;
         return { id: user.id, name: user.name, email: user.email, image: user.image } as any;

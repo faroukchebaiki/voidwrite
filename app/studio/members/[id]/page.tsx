@@ -5,6 +5,7 @@ import { posts } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import AdminControls from "@/components/AdminControls";
 
 export default async function MemberProfile({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -21,6 +22,10 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
   const last = rest.join(" ");
   const username = (u.email || "").split("@")[0];
   const avatar = u.image || "https://github.com/shadcn.png";
+  // Build transfer options (all other users)
+  const everyone = await db.select().from(users);
+  const options = everyone.filter((x:any)=> x.id !== id).map((u:any)=>({ id: u.id, label: u.name || u.email }));
+
   return (
     <main className="space-y-6">
       <div className="flex items-center gap-4">
@@ -31,6 +36,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
           <div className="text-sm text-muted-foreground">@{username} · {u.email}</div>
         </div>
       </div>
+      <AdminControls targetId={id} currentRole={role} options={options} />
       <section className="space-y-2">
         <h2 className="text-sm font-medium text-muted-foreground">Drafts</h2>
         <div className="space-y-2">
@@ -58,4 +64,3 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
     </main>
   );
 }
-

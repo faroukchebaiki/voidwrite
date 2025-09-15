@@ -1,94 +1,67 @@
-Voidwrite — Next.js Blog CMS (Drizzle + Auth.js)
-=================================================
+Voidwrite — Admin‑First Blog CMS (Next.js + Drizzle + Auth.js)
+=============================================================
 
-Modern, database-backed blog CMS built with Next.js (App Router), Tailwind CSS, Drizzle ORM, and Auth.js v5 (Credentials + Passkeys). Includes a writer dashboard (Studio), role-based access, RSS, image uploads via Vercel Blob, and deploys easily to Vercel + Neon.
+Voidwrite is a modern, role‑aware blog CMS featuring a writer dashboard (Studio), editorial workflow (assign → submit → approve/publish), notifications, analytics, tags, and secure uploads.
+
+Highlights
+- Next.js 15 (App Router, TypeScript), Tailwind CSS v4
+- Auth.js v5 (Credentials + Passkeys) with Drizzle Adapter
+- Drizzle ORM + Postgres (Neon/Vercel Postgres)
+- TipTap editor with image uploads (Vercel Blob)
+- Role‑based access: Admin and Author (Editor)
+- Editorial workflow: assign, submit, approve/publish
+- Notifications: assignment, submission, approval
+- Analytics: total + per‑day visitors, 7/30/90 chart
+- Theme: cookie‑backed, system/dark/light
 
 Quick Start
-- Install: `pnpm install`
-- Configure env: copy `.env.example` → `.env.local` and fill values
-- Generate SQL: `pnpm db:generate`
-- Apply migrations: `pnpm db:migrate`
-- Seed optional admin: `SEED_ADMIN_EMAIL=you@example.com SEED_ADMIN_PASSWORD=strongpass pnpm seed`
-- Dev: `pnpm dev` → http://localhost:3000
+- Install deps: `pnpm install`
+- Copy env: `.env.example` → `.env.local`, fill values
+- Generate migration: `pnpm db:generate`
+- Apply migration: `pnpm db:migrate`
+- Seed demo data (2 admins, 6 authors, sample posts): `pnpm tsx scripts/seed-demo.ts`
+- Dev server: `pnpm dev` → http://localhost:3000
 
-Environment Variables
-Create `.env.local` (Vercel → Project Settings → Environment Variables). Use `.env.example` as a template.
-
-- `DATABASE_URL=postgres://<...>`
+Environment
+- `DATABASE_URL=postgres://…`
 - `AUTH_SECRET=<openssl rand -hex 32>`
-- `NEXTAUTH_URL=https://<your-vercel-url>` (use `http://localhost:3000` locally)
-- `AUTH_WEBAUTHN_RP_NAME=My Blog`
-- `AUTH_WEBAUTHN_RP_ID=my-domain.com` (use `localhost` locally)
-- `AUTH_WEBAUTHN_ORIGIN=https://my-domain.com` (use `http://localhost:3000` locally)
+- `NEXTAUTH_URL=http://localhost:3000` (local) or your Vercel URL
+- `AUTH_WEBAUTHN_RP_NAME=Voidwrite`
+- `AUTH_WEBAUTHN_RP_ID=localhost`
+- `AUTH_WEBAUTHN_ORIGIN=http://localhost:3000`
 - `BLOB_READ_WRITE_TOKEN=<vercel-blob-rw-token>`
 
-Stack
-- Next.js 15 (App Router, TypeScript), Tailwind CSS
-- Drizzle ORM + `drizzle-kit` + Postgres (`pg`) on Neon/Vercel Postgres
-- Auth.js v5 + Drizzle Adapter, providers: Credentials + Passkey (WebAuthn)
-- Password hashing via `argon2` (fallback to `@node-rs/argon2`)
-- Markdown via `markdown-it` + `sanitize-html`
-- Rich editor (TipTap) for writing posts
-- File uploads via Vercel Blob
+Core Routes
+- Public: `/`, `/posts/[slug]`, `/tag/[slug]`, `/rss.xml`, `/sitemap.xml`
+- Auth: `/signup` (first signup becomes master admin), `/signin`
+- Studio: `/studio` (dashboard), `/studio/posts` (All posts, admin‑only), `/studio/my-blogs` (My posts), `/studio/pending` (Submitted, admin‑only), `/studio/posts/new`, `/studio/posts/[id]`, `/studio/tags` (admin), `/studio/invite` (admin), `/studio/members` (admin), `/studio/settings`
 
-Features
-- Public: `/` (published posts), `/posts/[slug]`, `/tag/[slug]`, `/rss.xml`, `/sitemap.xml`
-- Auth: `/signup`, `/signin` (redirects to Studio if already signed in)
-- Studio: `/studio` (dashboard), `/studio/posts` (All blogs), `/studio/myblogs` (My blogs), `/studio/posts/new`, `/studio/posts/[id]`, `/studio/settings`
-- Role-based access (admin/editor) protected by middleware
+Workflow Model
+- Authors can draft and submit for review; cannot publish or delete assigned/published posts.
+- Admins can assign, add notes, edit, publish, reassign, or delete any post.
+- Notifications are created for assignments, submissions, and approvals.
 
-Folder Tree
-```
-app/
-  api/                         API routes (Auth, posts, tags, settings, upload)
-  posts/[slug]/page.tsx        Public post page (Markdown rendered)
-  rss.xml/route.ts             RSS feed
-  sitemap.xml/route.ts         Sitemap
-  signin/, signup/             Auth pages
-  studio/                      Writer dashboard (Studio)
-    layout.tsx                 Studio shell + nav
-    page.tsx                   Overview (stats)
-    posts/                     All blogs + post routes
-    myblogs/                   My blogs list (filtered to current user)
-    settings/                  Site settings
-  layout.tsx                   Root layout (theme, header/footer)
-components/
-  Header.tsx, Footer.tsx       Public site header/footer
-  RichEditor.tsx               TipTap-based editor for content
-  PostEditor.tsx               Post editor used by Studio edit page
-  PostsTableClient.tsx         Data table for blogs (filters/sort/paging)
-  SettingsSingle.tsx           Settings page (Profile, Security, Theme)
-  SignOutButton.tsx            Client sign-out button
-db/
-  schema.ts                    CMS tables (posts, tags, settings, profiles)
-  auth-schema.ts               Auth.js tables for Drizzle adapter
-  index.ts                     Drizzle + PG pool
-drizzle/                       Generated SQL artifacts
-lib/
-  env.ts                       Server env validation (zod)
-  markdown.ts                  Markdown → sanitized HTML
-  password.ts                  Argon2 hash/verify helpers
-  validation.ts                zod schemas for API inputs
-scripts/
-  seed.ts                      Seed settings and optional admin user
-styles/
-  editor.css, theme.css        Styling
-```
+Analytics
+- Page views counted per post, with daily aggregation
+- Dashboard shows total visitors, month/today counts, and a 7/30/90 chart
 
-Database & Migrations
-- Schema in `db/schema.ts` (CMS) and `db/auth-schema.ts` (Auth.js)
-- Config in `drizzle.config.ts`, SQL in `drizzle/`
-- Commands: `pnpm db:generate`, `pnpm db:migrate`
+Tech Details
+- DB schema: `db/schema.ts`; Auth tables: `db/auth-schema.ts`
+- Migrations: `drizzle/` (via `pnpm db:generate` / `pnpm db:migrate`)
+- Editor: `components/RichEditor.tsx`
+- Post editor: `components/PostEditor.tsx`
+- Role helpers: `lib/auth-helpers.ts`
+- Analytics API: `app/api/analytics/views/route.ts`
+- Uploads: `app/api/upload/route.ts`
 
 Seeding
-- `SEED_ADMIN_EMAIL=you@example.com SEED_ADMIN_PASSWORD=... pnpm seed`
-- Creates default settings and an admin user with a hashed password
+- Demo users/posts/tags: `pnpm tsx scripts/seed-demo.ts`
+- All demo user passwords: `password123!`
 
-Deployment (Vercel)
-- Add Neon (Vercel Postgres) and set `DATABASE_URL`
-- Add env vars above (Auth + Blob)
-- Build with `pnpm build`
-- Run migrations during deploy (e.g., via deploy script or manually)
+Deploy (Vercel)
+- Provision Neon or Vercel Postgres; set `DATABASE_URL`
+- Add required env vars
+- `pnpm build` and run migrations at deploy
 
-License
-- MIT (see `LICENSE`)
+Author
+- farouk chebaiki — https://github.com/faroukchebaiki

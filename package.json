@@ -2,6 +2,8 @@
   "name": "voidwrite",
   "version": "0.3.0",
   "private": true,
+  "author": "farouk chebaiki",
+  "homepage": "https://github.com/faroukchebaiki",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",

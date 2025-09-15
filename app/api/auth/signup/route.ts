@@ -35,11 +35,11 @@ export async function POST(req: Request) {
   const existingProfiles = await db.select().from(profiles).limit(1);
   const isFirstAfter = existingProfiles.length === 0;
 
-  // default to admin for first user, otherwise author/editor
-  const finalRole = (requestedRole as any) || (isFirstAfter ? ("admin" as const) : ("editor" as const));
+  // default to admin for first user (master), otherwise author/editor; ignore invite role override for first
+  const finalRole = isFirstAfter ? ("admin" as const) : ((requestedRole as any) || ("editor" as const));
   await db
     .insert(profiles)
-    .values({ userId: createdUser.id, role: finalRole as any, passwordHash: hash });
+    .values({ userId: createdUser.id, role: finalRole as any, passwordHash: hash, isMaster: isFirstAfter });
 
   if (!isFirst && inviteCode) {
     await db

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, serial, pgEnum, boolean, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, serial, pgEnum, boolean, primaryKey, uniqueIndex, json } from "drizzle-orm/pg-core";
 
 // Roles for CMS
 export const userRole = pgEnum("user_role", ["admin", "editor", "user"]);
@@ -10,10 +10,19 @@ export const profiles = pgTable("profiles", {
   role: userRole("role").notNull().default("editor"),
   // Optional hash to support credentials login in addition to social/passkeys
   passwordHash: text("password_hash"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  bio: text("bio"),
+  link: text("link"),
+  username: text("username"),
+  suspended: boolean("suspended").notNull().default(false),
+  isMaster: boolean("is_master").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
-});
+}, (table) => ({
+  usernameIdx: uniqueIndex("profiles_username_unique").on(table.username),
+}));
 
-export const postStatus = pgEnum("post_status", ["draft", "published"]);
+export const postStatus = pgEnum("post_status", ["draft", "submitted", "published"]);
 
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
@@ -25,6 +34,13 @@ export const posts = pgTable("posts", {
   status: postStatus("status").notNull().default("draft"),
   authorId: text("author_id").notNull(), // references Auth.js users.id
   coverImageUrl: text("cover_image_url"),
+  views: integer("views").notNull().default(0),
+  createdBy: text("created_by").notNull(),
+  assignedTo: text("assigned_to"),
+  submittedAt: timestamp("submitted_at", { withTimezone: false }),
+  approvedBy: text("approved_by"),
+  approvedAt: timestamp("approved_at", { withTimezone: false }),
+  adminNote: text("admin_note"),
   publishedAt: timestamp("published_at", { withTimezone: false }),
   createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
@@ -79,4 +95,24 @@ export const invites = pgTable("invites", {
   usedBy: text("used_by"),
   usedAt: timestamp("used_at", { withTimezone: false }),
   expiresAt: timestamp("expires_at", { withTimezone: false }),
+});
+
+// Daily post views aggregation
+export const dailyPostViews = pgTable("daily_post_views", {
+  postId: integer("post_id").notNull(),
+  day: text("day").notNull(), // YYYY-MM-DD
+  count: integer("count").notNull().default(0),
+}, (t) => ({
+  pk: primaryKey({ name: "daily_post_views_pk", columns: [t.postId, t.day] }),
+}));
+
+// Notifications
+export const notificationType = pgEnum("notification_type", ["assignment", "submission", "approval"]);
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  type: notificationType("type").notNull(),
+  payload: json("payload"),
+  readAt: timestamp("read_at", { withTimezone: false }),
+  createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
 });

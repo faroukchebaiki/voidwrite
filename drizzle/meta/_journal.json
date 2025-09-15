@@ -15,6 +15,27 @@
       "when": 1757821216134,
       "tag": "0001_cuddly_red_ghost",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1757901773302,
+      "tag": "0002_cloudy_nuke",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1757905317094,
+      "tag": "0003_premium_lord_hawal",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1757908059465,
+      "tag": "0004_worried_boomerang",
+      "breakpoints": true
     }
   ]
 }

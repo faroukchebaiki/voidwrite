@@ -11,7 +11,10 @@ export default function Header() {
   const router = useRouter();
   const isStudio = pathname?.startsWith('/studio');
   const mode = (theme === 'system' ? systemTheme : theme) === 'dark' ? 'dark' : 'light';
-  const toggle = () => setTheme(mode === 'dark' ? 'light' : 'dark');
+  const setCookieTheme = (val: 'light'|'dark'|'system') => {
+    try { document.cookie = `vw_theme=${val}; Max-Age=${60*60*24*365}; Path=/`; } catch {}
+  };
+  const toggle = () => { const next = mode === 'dark' ? 'light' : 'dark'; setCookieTheme(next); setTheme(next); };
 
   if (isStudio) return null;
 

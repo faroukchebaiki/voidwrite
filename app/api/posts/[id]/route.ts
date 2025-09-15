@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { posts, postTags, tags } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { requireAdmin } from "@/lib/auth-helpers";
-import { updatePostSchema } from "@/lib/validation";
+import { requireStaff } from "@/lib/auth-helpers";
+import { updatePostSchema, updatePostWithAdminSchema } from "@/lib/validation";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: idParam } = await params;
@@ -14,23 +14,45 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await requireAdmin();
+  const user = await requireStaff();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
+  const uid = (user as any).id as string;
+  const role = (user as any).role as string | undefined;
   const { id: idParam } = await params;
   const id = Number(idParam);
   const body = await req.json();
-  const parsed = updatePostSchema.safeParse(body);
+  const parsed = (role === 'admin' ? updatePostWithAdminSchema : updatePostSchema).safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
   const data = parsed.data;
+
+  const [existing] = await db.select().from(posts).where(eq(posts.id, id));
+  if (!existing) return new NextResponse("Not found", { status: 404 });
+
+  // Permissions: authors can edit drafts they authored/assigned; cannot publish
+  const isOwnerOrAssignee = existing.authorId === uid || existing.assignedTo === uid;
+  if (role !== 'admin') {
+    // Authors: block publish
+    if (data.status === 'published') return new NextResponse('Forbidden', { status: 403 });
+    // Only allow edit if owner/assignee
+    if (!isOwnerOrAssignee) return new NextResponse('Forbidden', { status: 403 });
+  }
 
   const update: any = { updatedAt: new Date() };
   if (data.title !== undefined) update.title = data.title;
   if (data.slug !== undefined) update.slug = data.slug;
   if (data.excerpt !== undefined) update.excerpt = data.excerpt;
   if (data.content !== undefined) update.content = data.content;
-  if (data.status !== undefined) update.status = data.status;
   if (data.coverImageUrl !== undefined) update.coverImageUrl = data.coverImageUrl;
+  if ((role === 'admin') && (data as any).adminNote !== undefined) update.adminNote = (data as any).adminNote;
   if (data.publishedAt !== undefined) update.publishedAt = data.publishedAt ? new Date(data.publishedAt) : null;
+  if (data.status !== undefined) {
+    update.status = data.status;
+    if (data.status === 'submitted') update.submittedAt = new Date();
+    if (role === 'admin' && data.status === 'published') {
+      update.approvedBy = uid; update.approvedAt = new Date();
+      if (!existing.publishedAt) update.publishedAt = new Date();
+    }
+  }
 
   const [updated] = await db.update(posts).set(update).where(eq(posts.id, id)).returning();
   if (!updated) return new NextResponse("Not found", { status: 404 });
@@ -51,7 +73,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await requireAdmin();
+  const user = await requireStaff();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
   const { id: idParam } = await params;
   const id = Number(idParam);

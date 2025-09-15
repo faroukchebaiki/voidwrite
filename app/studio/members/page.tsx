@@ -4,7 +4,6 @@ import { users } from "@/db/auth-schema";
 import { profiles, posts } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 type Member = {
   id: string;
@@ -18,7 +17,6 @@ type Member = {
 export default async function MembersPage() {
   const session = await auth();
   const role = (session?.user as any)?.role as string | undefined;
-  if (role !== "admin") redirect("/studio");
 
   const raw = await db
     .select({ u: users, p: profiles })
@@ -64,6 +62,32 @@ export default async function MembersPage() {
     );
   };
 
+  if (role !== 'admin') {
+    return (
+      <main className="space-y-6">
+        <h1 className="text-2xl font-semibold">Team</h1>
+        <section className="space-y-2">
+          <h2 className="text-sm font-medium text-muted-foreground">Admins</h2>
+          <div className="space-y-2">
+            {admins.length === 0 && <div className="text-sm text-muted-foreground">No admins.</div>}
+            {admins.map((m) => (
+              <div key={m.id} className="flex items-center justify-between rounded border p-3">
+                <div className="flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.image || "https://github.com/shadcn.png"} alt={m.name || ''} className="h-10 w-10 rounded-full border object-cover" />
+                  <div>
+                    <div className="font-medium">{m.name || (m.email ? m.email.split('@')[0] : 'Admin')}</div>
+                    <div className="text-xs text-muted-foreground">{m.email}</div>
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground">{m.publishedCount} posts</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+    );
+  }
   return (
     <main className="space-y-6">
       <h1 className="text-2xl font-semibold">Team</h1>
