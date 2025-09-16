@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { BellIcon, FileTextIcon, LayoutDashboardIcon, ListIcon, PlusCircleIcon, Tag as TagIcon, AlertCircle } from "lucide-react"
+import { BellIcon, FileTextIcon, LayoutDashboardIcon, ListIcon, PlusCircleIcon, Tag as TagIcon, AlertCircle, Settings as SettingsIcon } from "lucide-react"
+import Link from "next/link"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -30,6 +31,7 @@ const data = {
     { key: 'all', title: "All Posts", url: "/studio/posts", icon: FileTextIcon },
     { key: 'tags', title: "Tags", url: "/studio/tags", icon: TagIcon },
     { key: 'invite', title: "Invite", url: "/studio/invite", icon: PlusCircleIcon },
+    { key: 'settings', title: "Settings", url: "/studio/settings", icon: SettingsIcon },
   ],
 }
 
@@ -44,7 +46,7 @@ export function AppSidebar({ role, ...props }: { role?: string } & React.Compone
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg">
-              <a href="/studio">
+              <Link href="/studio">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <LayoutDashboardIcon className="size-4" />
                 </div>
@@ -52,7 +54,7 @@ export function AppSidebar({ role, ...props }: { role?: string } & React.Compone
                   <span className="truncate font-semibold">Studio</span>
                   <span className="truncate text-xs">voidwrite</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

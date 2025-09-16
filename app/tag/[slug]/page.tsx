@@ -12,14 +12,14 @@ export async function generateStaticParams() {
   return [];
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({ params }: any) {
   const { slug } = await params;
   const [tag] = await db.select().from(tags).where(eq(tags.slug, slug));
   const title = tag ? `Tag: ${tag.name}` : `Tag: ${slug}`;
   return { title } as any;
 }
 
-export default async function TagPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function TagPage({ params }: any) {
   const { slug } = await params;
   const [tag] = await db.select().from(tags).where(eq(tags.slug, slug));
   if (!tag) notFound();

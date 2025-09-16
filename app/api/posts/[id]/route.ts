@@ -5,20 +5,20 @@ import { eq } from "drizzle-orm";
 import { requireStaff } from "@/lib/auth-helpers";
 import { updatePostSchema, updatePostWithAdminSchema } from "@/lib/validation";
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id: idParam } = await params;
+export async function GET(_req: Request, context: any) {
+  const { id: idParam } = (context?.params || {}) as { id: string };
   const id = Number(idParam);
   const [row] = await db.select().from(posts).where(eq(posts.id, id));
   if (!row) return new NextResponse("Not found", { status: 404 });
   return NextResponse.json(row);
 }
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(req: Request, context: any) {
   const user = await requireStaff();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
   const uid = (user as any).id as string;
   const role = (user as any).role as string | undefined;
-  const { id: idParam } = await params;
+  const { id: idParam } = (context?.params || {}) as { id: string };
   const id = Number(idParam);
   const body = await req.json();
   const parsed = (role === 'admin' ? updatePostWithAdminSchema : updatePostSchema).safeParse(body);
@@ -72,10 +72,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_req: Request, context: any) {
   const user = await requireStaff();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
-  const { id: idParam } = await params;
+  const { id: idParam } = (context?.params || {}) as { id: string };
   const id = Number(idParam);
   await db.delete(postTags).where(eq(postTags.postId, id));
   await db.delete(posts).where(eq(posts.id, id));

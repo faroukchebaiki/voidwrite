@@ -4,10 +4,11 @@ import { useEffect, useState, useTransition } from "react";
 type SiteSettings = {
   siteTitle: string;
   siteDescription: string | null;
+  theme?: 'light'|'dark'|'system';
 };
 
 export default function SettingsForm() {
-  const [data, setData] = useState<SiteSettings>({ siteTitle: "", siteDescription: "" });
+  const [data, setData] = useState<SiteSettings>({ siteTitle: "", siteDescription: "", theme: 'system' });
   const [loading, setLoading] = useState(true);
   const [saving, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +23,7 @@ export default function SettingsForm() {
         if (!aborted) setData({
           siteTitle: json?.siteTitle || '',
           siteDescription: json?.siteDescription || '',
+          theme: (json?.theme === 'light' || json?.theme === 'dark' || json?.theme === 'system') ? json.theme : 'system',
         });
       } catch {
       } finally {
@@ -39,7 +41,7 @@ export default function SettingsForm() {
         const res = await fetch('/api/settings', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+          body: JSON.stringify({ siteTitle: data.siteTitle, siteDescription: data.siteDescription, theme: data.theme || 'system' }),
         });
         if (!res.ok) throw new Error('Failed to save settings');
         setOk('Saved');
@@ -62,6 +64,15 @@ export default function SettingsForm() {
         <div>
           <label className="block text-sm mb-1">Description</label>
           <textarea rows={3} className="w-full border rounded px-3 py-2" value={data.siteDescription || ''} onChange={(e)=>setData(v=>({...v, siteDescription: e.target.value}))} />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Default theme</label>
+          <select className="w-full border rounded px-3 py-2" value={data.theme || 'system'} onChange={(e)=>setData(v=>({...v, theme: e.target.value as any}))}>
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+          <p className="text-xs text-muted-foreground mt-1">This sets the default for new visitors. Users can still toggle their own theme.</p>
         </div>
         <div className="flex items-center gap-3">
           <button disabled={saving} className="px-3 py-2 border rounded">{saving ? 'Saving…' : 'Save settings'}</button>

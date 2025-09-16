@@ -3,38 +3,60 @@ import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { posts } from "@/db/schema";
 import { users } from "@/db/auth-schema";
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
-export default async function MyBlogsPage({ searchParams }: { searchParams?: Promise<Record<string, string>> }) {
+export default async function MyBlogsPage({ searchParams }: any) {
   const session = await auth();
   const uid = (session?.user as any)?.id as string | undefined;
   const params = (await searchParams) || {};
-  const q = (params.q || "").toLowerCase();
-  const draftOnly = params.draft === "1";
-  const sort = params.sort === "visits" ? "visits" : "updated";
-  const statusParam = (params.status as string | undefined) || 'all';
-  const assigneeParam = params.assignee as string | undefined;
-  const limit = Math.max(1, Math.min(Number(params.limit) || 15, 500));
+  const q = String((params as any).q || "").trim();
+  const draftOnly = String((params as any).draft || "") === "1";
+  const sort = String((params as any).sort || "updated") === "visits" ? "visits" : "updated";
+  const statusParam = (params as any).status ? String((params as any).status) : 'all';
+  const assigneeParam = (params as any).assignee ? String((params as any).assignee) : undefined;
+  const limit = Math.max(1, Math.min(Number((params as any).limit) || 15, 500));
+  const offset = Math.max(0, Number((params as any).offset) || 0);
 
-  const base = db
+  // Build SQL filters
+  const wheres = [eq(posts.authorId, String(uid))] as any[];
+  if (draftOnly) wheres.push(eq(posts.status as any, 'draft' as any));
+  if (statusParam && statusParam !== 'all') wheres.push(eq(posts.status as any, statusParam as any));
+  if (assigneeParam) wheres.push(eq(posts.assignedTo as any, assigneeParam));
+  if (q) {
+    const like = `%${q}%`;
+    wheres.push(or(ilike(posts.title, like), ilike(posts.excerpt, like)) as any);
+  }
+
+  // Total count for pagination
+  const [{ cnt }] = await db
+    .select({ cnt: sql<number>`count(*)` })
+    .from(posts)
+    .where(and(...wheres));
+
+  // Fetch page rows with join for author name
+  const rows = await db
     .select({ p: posts, u: users })
     .from(posts)
     .leftJoin(users, eq(users.id, posts.authorId))
-    .where(eq(posts.authorId, uid as string))
-    .orderBy(desc(posts.updatedAt));
+    .where(and(...wheres))
+    .orderBy(sort === 'visits' ? desc(posts.views as any) : desc(posts.updatedAt))
+    .limit(limit)
+    .offset(offset);
 
-  let list = (await base).map((row: any) => ({ ...row.p, authorName: row.u?.name || row.u?.email || "Unknown", authorId: row.u?.id }));
+  const list = rows.map((row: any) => ({ ...row.p, authorName: row.u?.name || row.u?.email || "Unknown", authorId: row.u?.id }));
 
-  if (draftOnly) list = list.filter((p) => String(p.status) === "draft");
-  if (statusParam && statusParam !== 'all') list = list.filter((p)=> String(p.status) === statusParam);
-  if (q) list = list.filter((p) => p.title.toLowerCase().includes(q) || (p.excerpt || "").toLowerCase().includes(q));
-  if (assigneeParam) list = list.filter((p:any)=> p.assignedTo === assigneeParam);
-
-  const assigneeIds = Array.from(new Set(list.map((p:any)=>p.assignedTo).filter(Boolean)));
+  // Distinct assignees across full filtered set (ignoring assigneeParam)
+  const wheresNoAssignee = wheres.filter((w) => String(w.sql ?? '').indexOf('assigned_to') === -1);
+  const distinctAssignees = await db
+    .select({ id: posts.assignedTo })
+    .from(posts)
+    .where(and(...wheresNoAssignee))
+    .groupBy(posts.assignedTo);
+  const assigneeIds = Array.from(new Set(distinctAssignees.map((r: any) => r.id).filter(Boolean)));
   const assignees = assigneeIds.length ? await db.select().from(users).where(inArray(users.id, assigneeIds as string[])) : [];
   const assigneeName = new Map(assignees.map((u:any)=>[u.id, u.name || u.email]));
 
-  let mapped: PostRow[] = list.map((p: any) => ({
+  const mapped: PostRow[] = list.map((p: any) => ({
     id: p.id,
     title: p.title,
     slug: p.slug,
@@ -46,17 +68,15 @@ export default async function MyBlogsPage({ searchParams }: { searchParams?: Pro
     assignedToName: p.assignedTo ? (assigneeName.get(p.assignedTo) || p.assignedTo) : undefined,
   }));
 
-  if (sort === "visits") mapped = mapped.sort((a, b) => b.visits - a.visits);
-  const total = mapped.length;
-  const rows = mapped.slice(0, limit);
-  const assigneeOptions = Array.from(new Map(list.filter((p:any)=>p.assignedTo).map((p:any)=>[p.assignedTo, assigneeName.get(p.assignedTo) || p.assignedTo])).entries()).map(([id, label])=>({ id: id as string, label: String(label) }));
+  const total = Number(cnt);
+  const assigneeOptions = assigneeIds.map((id: string) => ({ id, label: assigneeName.get(id) || id }));
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">My Posts</h1>
       </div>
-      <PostsTableClient rows={rows} total={total} limit={limit} mine={true} draftOnly={draftOnly} sort={sort} status={statusParam} assigneeOptions={assigneeOptions} assignee={assigneeParam ?? null} />
+      <PostsTableClient rows={mapped} total={total} limit={limit} mine={true} draftOnly={draftOnly} sort={sort} status={statusParam} assigneeOptions={assigneeOptions} assignee={assigneeParam ?? null} />
       {rows.length === 0 && <p className="text-sm text-gray-500">No posts found.</p>}
     </div>
   );

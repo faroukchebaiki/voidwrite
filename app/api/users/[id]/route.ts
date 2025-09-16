@@ -6,10 +6,10 @@ import { eq } from "drizzle-orm";
 import { requireAdmin, isMaster } from "@/lib/auth-helpers";
 
 // Delete a user after transferring posts to another userId
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, context: any) {
   const admin = await requireAdmin();
   if (!admin) return new NextResponse('Unauthorized', { status: 401 });
-  const { id } = await params;
+  const { id } = (context?.params || {}) as { id: string };
   if (await isMaster(id)) return new NextResponse('Cannot delete master admin', { status: 400 });
   const url = new URL(req.url);
   const transferTo = url.searchParams.get('transferTo');
@@ -22,4 +22,3 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   await db.delete(users).where(eq(users.id, id));
   return new NextResponse(null, { status: 204 });
 }
-

@@ -11,7 +11,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-type NavItem = { key?: 'dashboard'|'notifications'|'new'|'my'|'all'|'tags'|'pending'|string; title: string; url: string; icon?: LucideIcon };
+type NavItem = { key?: 'dashboard'|'notifications'|'new'|'my'|'all'|'tags'|'pending'|'invite'|'settings'|string; title: string; url: string; icon?: LucideIcon };
 
 export function NavMain({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
@@ -21,11 +21,14 @@ export function NavMain({ items }: { items: NavItem[] }) {
     if (pathname === '/studio') return 'dashboard';
     if (pathname === '/studio/notifications') return 'notifications';
     if (pathname === '/studio/posts/new') return 'new';
+    // Treat edit pages under /studio/posts/[id] as part of "All Posts"
+    if (pathname.startsWith('/studio/posts/') && pathname !== '/studio/posts/new') return 'all';
     if (pathname === '/studio/my-blogs') return 'my';
     if (pathname === '/studio/posts') return 'all';
     if (pathname === '/studio/pending') return 'pending';
     if (pathname === '/studio/tags') return 'tags';
     if (pathname === '/studio/invite') return 'invite';
+    if (pathname.startsWith('/studio/settings')) return 'settings';
     return undefined;
   })();
   // Ensure only one item is active at a time

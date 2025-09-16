@@ -1,7 +1,7 @@
 "use client";
 import { useTransition } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -37,14 +37,18 @@ export default function PostsTableClient({ rows, total, limit, mine, draftOnly, 
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const pathname = usePathname();
   const [pending, startTransition] = useTransition();
 
-  const nextLimit = Math.min(limit + 15, total);
+  const offset = Math.max(0, Number(params.get('offset') || '0'));
 
-  const updateParam = (key: string, value?: string) => {
+  const updateParam = (key: string, value?: string, opts: { resetOffset?: boolean } = { resetOffset: true }) => {
     const qp = new URLSearchParams(params.toString());
     if (value === undefined || value === "") qp.delete(key); else qp.set(key, value);
-    const url = `/studio/posts?${qp.toString()}`;
+    if (opts.resetOffset !== false) qp.delete('offset');
+    // Keep navigation within the current list page (All vs My)
+    const basePath = pathname.startsWith('/studio/my-blogs') ? '/studio/my-blogs' : '/studio/posts';
+    const url = `${basePath}?${qp.toString()}`;
     startTransition(() => router.push(url));
   };
 
@@ -53,7 +57,8 @@ export default function PostsTableClient({ rows, total, limit, mine, draftOnly, 
   const onAuthor = (v: string) => updateParam("author", v === "all" ? "" : v);
   const onStatus = (v: string) => updateParam("status", v === 'all' ? "" : v);
   const onAssignee = (v: string) => updateParam("assignee", v === 'all' ? "" : v);
-  const onShowMore = () => updateParam("limit", String(nextLimit));
+  const onPrev = () => updateParam('offset', String(Math.max(0, offset - limit)), { resetOffset: false });
+  const onNext = () => updateParam('offset', String(offset + limit), { resetOffset: false });
 
   const onDelete = async (id: number) => {
     if (!confirm("Delete this post?")) return;
@@ -95,6 +100,10 @@ export default function PostsTableClient({ rows, total, limit, mine, draftOnly, 
           <label className="text-sm text-muted-foreground">Sort:</label>
           <div>
             <SortSelect value={sort} onValueChange={onSort} />
+          </div>
+          <label className="text-sm text-muted-foreground ml-3">Per page:</label>
+          <div>
+            <PageSizeSelect value={String(limit)} onValueChange={(v)=>updateParam('limit', v)} />
           </div>
         </div>
       </div>
@@ -170,11 +179,32 @@ export default function PostsTableClient({ rows, total, limit, mine, draftOnly, 
           </TableBody>
         </Table>
       </div>
-      {rows.length < total && (
-        <div className="flex justify-center">
-          <Button variant="outline" size="sm" onClick={onShowMore} disabled={pending}>Show more</Button>
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-muted-foreground">
+          {total > 0
+            ? `Showing ${Math.min(offset + 1, total)}-${Math.min(offset + rows.length, total)} of ${total}`
+            : 'No results'}
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={()=>updateParam('offset','0',{resetOffset:false})} disabled={pending || offset === 0}>First</Button>
+          <Button variant="outline" size="sm" onClick={onPrev} disabled={pending || offset === 0}>Prev</Button>
+          <span className="text-xs text-muted-foreground">
+            Page {total > 0 ? Math.floor(offset / limit) + 1 : 1} of {Math.max(1, Math.ceil(total / limit || 1))}
+          </span>
+          <Button variant="outline" size="sm" onClick={onNext} disabled={pending || offset + limit >= total}>Next</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={()=>{
+              const lastStart = Math.max(0, Math.floor((total - 1) / limit) * limit);
+              updateParam('offset', String(lastStart), { resetOffset: false });
+            }}
+            disabled={pending || offset + limit >= total}
+          >
+            Last
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -188,6 +218,21 @@ function SortSelect({ value, onValueChange }: { value: string; onValueChange: (v
       <SelectContent align="end">
         <SelectItem value="updated">Recently updated</SelectItem>
         <SelectItem value="visits">Most visits</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+
+function PageSizeSelect({ value, onValueChange }: { value: string; onValueChange: (v: string) => void }) {
+  return (
+    <Select value={value} onValueChange={onValueChange}>
+      <SelectTrigger className="h-8 w-24">
+        <SelectValue placeholder="Per page" />
+      </SelectTrigger>
+      <SelectContent align="end">
+        <SelectItem value="15">15</SelectItem>
+        <SelectItem value="30">30</SelectItem>
+        <SelectItem value="50">50</SelectItem>
       </SelectContent>
     </Select>
   );

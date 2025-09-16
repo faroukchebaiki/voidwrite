@@ -5,10 +5,10 @@ import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { assignPostSchema } from "@/lib/validation";
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, context: any) {
   const admin = await requireAdmin();
   if (!admin) return new NextResponse("Unauthorized", { status: 401 });
-  const { id: idParam } = await params;
+  const { id: idParam } = (context?.params || {}) as { id: string };
   const id = Number(idParam);
   const body = await req.json();
   const parsed = assignPostSchema.safeParse(body);

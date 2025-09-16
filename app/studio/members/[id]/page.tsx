@@ -7,7 +7,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import AdminControls from "@/components/AdminControls";
 
-export default async function MemberProfile({ params }: { params: Promise<{ id: string }> }) {
+export default async function MemberProfile({ params }: any) {
   const session = await auth();
   const role = (session?.user as any)?.role as string | undefined;
   if (role !== "admin") redirect("/studio");

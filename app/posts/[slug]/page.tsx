@@ -9,7 +9,7 @@ import ViewTracker from "@/components/ViewTracker";
 export const revalidate = 60;
 export const dynamic = 'force-dynamic';
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({ params }: any) {
   const { slug } = await params;
   const [post] = await db.select().from(posts).where(eq(posts.slug, slug));
   if (!post) return {};
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   } as any;
 }
 
-export default async function PostPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function PostPage({ params }: any) {
   const { slug } = await params;
   const [post] = await db.select().from(posts).where(eq(posts.slug, slug));
   if (!post || post.status !== ("published" as any)) notFound();

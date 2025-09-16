@@ -4,11 +4,11 @@ import { posts, profiles, notifications } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { requireStaff } from "@/lib/auth-helpers";
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(_req: Request, context: any) {
   const user = await requireStaff();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
   const uid = (user as any).id as string;
-  const { id: idParam } = await params;
+  const { id: idParam } = (context?.params || {}) as { id: string };
   const id = Number(idParam);
   const [p] = await db.select().from(posts).where(eq(posts.id, id));
   if (!p) return new NextResponse("Not found", { status: 404 });
@@ -21,4 +21,3 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
   return NextResponse.json(updated);
 }
-

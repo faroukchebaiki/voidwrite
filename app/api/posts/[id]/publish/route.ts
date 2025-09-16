@@ -4,11 +4,11 @@ import { posts, notifications } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth-helpers";
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(_req: Request, context: any) {
   const admin = await requireAdmin();
   if (!admin) return new NextResponse("Unauthorized", { status: 401 });
   const uid = (admin as any).id as string;
-  const { id: idParam } = await params;
+  const { id: idParam } = (context?.params || {}) as { id: string };
   const id = Number(idParam);
   const [p] = await db.select().from(posts).where(eq(posts.id, id));
   if (!p) return new NextResponse("Not found", { status: 404 });
