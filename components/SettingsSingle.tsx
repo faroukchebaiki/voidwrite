@@ -115,6 +115,7 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
       {/* Security */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Security</h2>
+        <p className="text-sm text-muted-foreground">Current email: {currentEmail}</p>
         <EmailPasswordClient />
         <div className="space-y-2">
           <div className="text-sm font-medium">Passkeys</div>

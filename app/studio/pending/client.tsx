@@ -1,12 +1,11 @@
 "use client";
-import { useState } from 'react';
 import { toast } from 'sonner';
 import UserCombobox from '@/components/UserCombobox';
 
 type Item = { id: number; title: string; slug: string; author: string; submittedAt?: string; adminNote?: string | null; assignedTo?: string | null };
 
 export default function PendingClient({ items }: { items: Item[] }) {
-  const [rows, setRows] = useState(items);
+  const rows = items;
   const publish = async (id: number) => {
     const res = await fetch(`/api/posts/${id}/publish`, { method: 'POST' });
     if (res.ok) { toast.success('Published'); location.reload(); } else toast.error('Failed to publish');

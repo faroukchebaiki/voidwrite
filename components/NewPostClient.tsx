@@ -98,7 +98,7 @@ export default function NewPostClient({ role }: { role?: string }) {
       location.href = `/studio/posts/${data.id}`;
       return data;
     },
-    [content, coverImageUrl, excerpt, genSlug, hasContent, hasTitle, isAdmin, seoKeywords]
+    [content, coverImageUrl, excerpt, genSlug, hasContent, hasTitle, isAdmin, seoKeywords, title]
   );
   const onSave = useCallback(() => {
     void submit(false);
@@ -184,7 +184,7 @@ export default function NewPostClient({ role }: { role?: string }) {
     }
   }, [assignOpen, loadTeam, teamLoaded]);
 
-  const clickUpload = () => fileRef.current?.click();
+  const clickUpload = useCallback(() => fileRef.current?.click(), []);
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;

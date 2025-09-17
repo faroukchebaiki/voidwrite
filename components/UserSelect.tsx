@@ -20,20 +20,30 @@ export default function UserSelect({
   const [selected, setSelected] = useState<Option | null>(null);
 
   useEffect(() => {
+    let ignore = false;
     (async () => {
       try {
         const res = await fetch('/api/users', { cache: 'no-store' });
         if (!res.ok) return;
         const data = await res.json();
+        if (ignore) return;
         const opts = data.map((u: any) => ({ id: u.id, label: u.name || u.email, image: u.image }));
         setOptions(opts);
-        if (value) {
-          const found = opts.find((o: Option) => o.id === value) || null;
-          setSelected(found);
-        }
       } catch {}
     })();
+    return () => {
+      ignore = true;
+    };
   }, []);
+
+  useEffect(() => {
+    if (!value) {
+      setSelected(null);
+      return;
+    }
+    const found = options.find((o) => o.id === value) || null;
+    setSelected(found);
+  }, [options, value]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -82,4 +92,3 @@ export default function UserSelect({
     </div>
   );
 }
-

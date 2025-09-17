@@ -171,6 +171,7 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
       toast.error("Add a title before saving.", { position: "bottom-center" });
       return;
     }
+    if (saving) return;
     setSaving(true);
     try {
       const nextSlug = slug.trim() || slugify(title);
@@ -217,7 +218,7 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
     } finally {
       setSaving(false);
     }
-  }, [content, coverImageUrl, hasTitle, initial.id, isAdmin, noteDraft, router, seoKeywords, slug, slugify, title]);
+  }, [content, coverImageUrl, excerpt, hasTitle, initial.id, isAdmin, noteDraft, router, saving, seoKeywords, slug, slugify, title]);
 
   const onPublish = useCallback(async () => {
     if (!isAdmin || publishing) return;
