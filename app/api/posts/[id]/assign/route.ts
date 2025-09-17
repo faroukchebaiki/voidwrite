@@ -13,11 +13,31 @@ export async function POST(req: Request, context: any) {
   const body = await req.json();
   const parsed = assignPostSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
-  const { assignedTo } = parsed.data;
+  const { assignedTo, note } = parsed.data;
   const [p] = await db.select().from(posts).where(eq(posts.id, id));
   if (!p) return new NextResponse("Not found", { status: 404 });
-  const [updated] = await db.update(posts).set({ assignedTo, updatedAt: new Date() }).where(eq(posts.id, id)).returning();
+  if (!p.title?.trim()) {
+    return new NextResponse("Post requires a title before assignment", { status: 400 });
+  }
+  const update: Record<string, any> = {
+    assignedTo,
+    updatedAt: new Date(),
+  };
+  let trimmedNote: string | null = null;
+  if (note !== undefined) {
+    trimmedNote = typeof note === "string" ? note.trim() : null;
+    update.adminNote = trimmedNote && trimmedNote.length ? trimmedNote : null;
+  }
+  const [updated] = await db.update(posts).set(update as any).where(eq(posts.id, id)).returning();
   // Notify assignee
-  await db.insert(notifications).values({ userId: assignedTo, type: 'assignment' as any, payload: { postId: id, title: p.title } as any });
+  await db.insert(notifications).values({
+    userId: assignedTo,
+    type: 'assignment' as any,
+    payload: {
+      postId: id,
+      title: p.title,
+      note: trimmedNote,
+    } as any,
+  });
   return NextResponse.json(updated);
 }

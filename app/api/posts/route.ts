@@ -17,6 +17,7 @@ export async function POST(req: Request) {
   const parsed = createPostSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
   const data = parsed.data;
+  const keywords = data.seoKeywords?.trim();
 
   const now = new Date();
   const [created] = await db
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
       content: data.content,
       status: data.status,
       coverImageUrl: data.coverImageUrl || null,
+      seoKeywords: keywords || null,
       authorId: (user as any).id,
       createdBy: (user as any).id,
       assignedTo: null,

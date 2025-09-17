@@ -14,9 +14,16 @@ export async function generateMetadata({ params }: any) {
   const [post] = await db.select().from(posts).where(eq(posts.slug, slug));
   if (!post) return {};
   const description = post.excerpt || undefined;
+  const keywords = (post as any).seoKeywords
+    ? String((post as any).seoKeywords)
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean)
+    : undefined;
   return {
     title: post.title,
     description,
+    keywords,
     openGraph: {
       title: post.title,
       description,

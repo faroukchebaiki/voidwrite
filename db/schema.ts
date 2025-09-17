@@ -41,6 +41,7 @@ export const posts = pgTable("posts", {
   approvedBy: text("approved_by"),
   approvedAt: timestamp("approved_at", { withTimezone: false }),
   adminNote: text("admin_note"),
+  seoKeywords: text("seo_keywords"),
   publishedAt: timestamp("published_at", { withTimezone: false }),
   createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
@@ -107,12 +108,20 @@ export const dailyPostViews = pgTable("daily_post_views", {
 }));
 
 // Notifications
-export const notificationType = pgEnum("notification_type", ["assignment", "submission", "approval"]);
+export const notificationType = pgEnum("notification_type", ["assignment", "submission", "approval", "note", "edit"]);
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull(),
   type: notificationType("type").notNull(),
   payload: json("payload"),
   readAt: timestamp("read_at", { withTimezone: false }),
+  createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
+});
+
+export const postNotes = pgTable("post_notes", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull(),
+  authorId: text("author_id").notNull(),
+  note: text("note").notNull(),
   createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
 });

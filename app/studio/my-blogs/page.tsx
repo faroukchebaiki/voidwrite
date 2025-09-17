@@ -18,10 +18,15 @@ export default async function MyBlogsPage({ searchParams }: any) {
   const offset = Math.max(0, Number((params as any).offset) || 0);
 
   // Build SQL filters
-  const wheres = [eq(posts.authorId, String(uid))] as any[];
+  const userFilter = or(eq(posts.authorId, String(uid)), eq(posts.assignedTo as any, String(uid)));
+  const wheres = [userFilter] as any[];
   if (draftOnly) wheres.push(eq(posts.status as any, 'draft' as any));
   if (statusParam && statusParam !== 'all') wheres.push(eq(posts.status as any, statusParam as any));
-  if (assigneeParam) wheres.push(eq(posts.assignedTo as any, assigneeParam));
+  let assigneeFilter: any = null;
+  if (assigneeParam) {
+    assigneeFilter = eq(posts.assignedTo as any, assigneeParam);
+    wheres.push(assigneeFilter);
+  }
   if (q) {
     const like = `%${q}%`;
     wheres.push(or(ilike(posts.title, like), ilike(posts.excerpt, like)) as any);
@@ -46,7 +51,7 @@ export default async function MyBlogsPage({ searchParams }: any) {
   const list = rows.map((row: any) => ({ ...row.p, authorName: row.u?.name || row.u?.email || "Unknown", authorId: row.u?.id }));
 
   // Distinct assignees across full filtered set (ignoring assigneeParam)
-  const wheresNoAssignee = wheres.filter((w) => String(w.sql ?? '').indexOf('assigned_to') === -1);
+  const wheresNoAssignee = assigneeFilter ? wheres.filter((w) => w !== assigneeFilter) : [...wheres];
   const distinctAssignees = await db
     .select({ id: posts.assignedTo })
     .from(posts)

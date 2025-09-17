@@ -9,10 +9,11 @@ export const createPostSchema = z.object({
   coverImageUrl: z.string().url().optional().nullable(),
   tags: z.array(z.string()).optional().default([]), // tag slugs
   publishedAt: z.string().datetime().optional().nullable(),
+  seoKeywords: z.string().max(500).optional().nullable(),
 });
 
 export const updatePostSchema = createPostSchema.partial();
-export const updatePostWithAdminSchema = updatePostSchema.extend({ adminNote: z.string().max(2000).optional() });
+export const updatePostWithAdminSchema = updatePostSchema;
 
 export const tagSchema = z.object({
   name: z.string().min(1).max(50),
@@ -34,7 +35,11 @@ export const signupSchema = z.object({
   inviteCode: z.string().min(6).max(64).optional(),
 });
 
-export const assignPostSchema = z.object({ assignedTo: z.string().uuid() });
+export const assignPostSchema = z.object({
+  assignedTo: z.string().uuid(),
+  note: z.string().max(2000).optional().nullable(),
+});
+export const postNoteSchema = z.object({ note: z.string().min(1).max(2000) });
 export const changeRoleSchema = z.object({ role: z.enum(["admin","editor"]) });
 export const profileSchema = z.object({
   firstName: z.string().max(100).optional().nullable(),
@@ -49,3 +54,4 @@ export type UpdatePostInput = z.infer<typeof updatePostSchema>;
 export type TagInput = z.infer<typeof tagSchema>;
 export type SettingsInput = z.infer<typeof settingsSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
+export type PostNoteInput = z.infer<typeof postNoteSchema>;

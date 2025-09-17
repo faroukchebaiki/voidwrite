@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { posts, postTags, tags } from "@/db/schema";
+import { posts, postTags, tags, notifications } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { requireStaff } from "@/lib/auth-helpers";
 import { updatePostSchema, updatePostWithAdminSchema } from "@/lib/validation";
@@ -43,7 +43,11 @@ export async function PATCH(req: Request, context: any) {
   if (data.excerpt !== undefined) update.excerpt = data.excerpt;
   if (data.content !== undefined) update.content = data.content;
   if (data.coverImageUrl !== undefined) update.coverImageUrl = data.coverImageUrl;
-  if ((role === 'admin') && (data as any).adminNote !== undefined) update.adminNote = (data as any).adminNote;
+  if (data.seoKeywords !== undefined) {
+    const keywords = data.seoKeywords;
+    const trimmed = typeof keywords === "string" ? keywords.trim() : keywords;
+    update.seoKeywords = trimmed ? (trimmed as any) : null;
+  }
   if (data.publishedAt !== undefined) update.publishedAt = data.publishedAt ? new Date(data.publishedAt) : null;
   if (data.status !== undefined) {
     update.status = data.status;
@@ -67,6 +71,14 @@ export async function PATCH(req: Request, context: any) {
       .filter(Boolean)
       .map((t) => ({ postId: id, tagId: (t as any).id }));
     if (pairs.length) await db.insert(postTags).values(pairs);
+  }
+
+  if (role === 'admin' && existing.authorId && existing.authorId !== uid) {
+    await db.insert(notifications).values({
+      userId: existing.authorId,
+      type: 'edit' as any,
+      payload: { postId: id, title: existing.title } as any,
+    });
   }
 
   return NextResponse.json(updated);

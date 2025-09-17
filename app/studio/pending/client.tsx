@@ -12,8 +12,19 @@ export default function PendingClient({ items }: { items: Item[] }) {
     if (res.ok) { toast.success('Published'); location.reload(); } else toast.error('Failed to publish');
   };
   const saveNote = async (id: number, note: string) => {
-    const res = await fetch(`/api/posts/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminNote: note }) });
-    if (res.ok) toast.success('Note saved'); else toast.error('Failed to save note');
+    const trimmed = note.trim();
+    if (!trimmed) return;
+    const res = await fetch(`/api/posts/${id}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note: trimmed }),
+    });
+    if (res.ok) {
+      toast.success('Note saved');
+    } else {
+      const msg = await res.text().catch(() => 'Failed to save note');
+      toast.error(msg || 'Failed to save note');
+    }
   };
   const reassign = async (id: number, to: string) => {
     const res = await fetch(`/api/posts/${id}/assign`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assignedTo: to }) });
