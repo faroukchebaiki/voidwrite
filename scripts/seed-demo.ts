@@ -1,7 +1,6 @@
 import { config as loadEnv } from 'dotenv';
 loadEnv({ path: '.env.local' });
 loadEnv();
-import type { InferModel } from 'drizzle-orm';
 import { eq } from "drizzle-orm";
 
 let db: any;
@@ -77,8 +76,6 @@ async function main() {
   if (existingTags.length < seedTags.length) {
     await db.insert(tags).values(seedTags.filter(t=>!existingSlugs.has(t.slug)) as any);
   }
-  const allTags = (await db.select().from(tags));
-
   // Create posts for each author
   for (const a of [admin1, admin2, ...authors]) {
     await createPost(a.id, `Welcome from ${a.name || a.email}`, 'draft');

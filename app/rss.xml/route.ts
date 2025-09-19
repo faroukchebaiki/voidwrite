@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   const xml = `<?xml version="1.0" encoding="UTF-8" ?>
   <rss version="2.0">
     <channel>
-      <title><![CDATA[${site?.siteTitle || 'My Blog'}]]></title>
+      <title><![CDATA[${site?.siteTitle || 'Voidwrite'}]]></title>
       <link>${origin}</link>
       <description><![CDATA[${site?.siteDescription || ''}]]></description>
       ${items}

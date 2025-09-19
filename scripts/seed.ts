@@ -8,7 +8,7 @@ async function main() {
   console.log("Seeding database…");
   const [site] = await db.select().from(settings).limit(1);
   if (!site) {
-    await db.insert(settings).values({ siteTitle: "My Blog", siteDescription: "Just another blog" });
+    await db.insert(settings).values({ siteTitle: "Voidwrite", siteDescription: "Just another blog" });
     console.log("✔ Settings inserted");
   } else {
     console.log("• Settings already exist");

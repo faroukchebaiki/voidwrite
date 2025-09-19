@@ -8,7 +8,7 @@ declare namespace NodeJS {
     NEXTAUTH_URL?: string;
 
     // Passkeys (WebAuthn)
-    AUTH_WEBAUTHN_RP_NAME: string; // e.g. "My Blog"
+    AUTH_WEBAUTHN_RP_NAME: string; // e.g. "Voidwrite"
     AUTH_WEBAUTHN_RP_ID: string;   // e.g. "my-domain.com"
     AUTH_WEBAUTHN_ORIGIN: string;  // e.g. "https://my-domain.com"
 

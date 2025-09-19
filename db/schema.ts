@@ -68,7 +68,7 @@ export const postTags = pgTable("post_tags", {
 // Site settings (single row)
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
-  siteTitle: text("site_title").notNull().default("My Blog"),
+  siteTitle: text("site_title").notNull().default("Voidwrite"),
   siteDescription: text("site_description"),
   theme: text("theme").default("system"),
   createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
