@@ -21,17 +21,30 @@ export async function PUT(req: Request) {
   const parsed = profileSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
   const data = parsed.data as any;
+  const payload = {
+    firstName: data.firstName ?? null,
+    lastName: data.lastName ?? null,
+    bio: data.bio ?? null,
+    link: data.link ?? null,
+    username: data.username ?? null,
+  };
   const [updated] = await db
     .update(profiles)
-    .set({
-      firstName: data.firstName ?? null,
-      lastName: data.lastName ?? null,
-      bio: data.bio ?? null,
-      link: data.link ?? null,
-      username: data.username ?? undefined,
-    })
+    .set(payload)
     .where(eq(profiles.userId, uid))
     .returning();
-  return NextResponse.json(updated);
-}
+  if (updated) {
+    return NextResponse.json({ success: true, profile: updated, message: 'Profile saved' });
+  }
 
+  const [created] = await db
+    .insert(profiles)
+    .values({
+      userId: uid,
+      role: 'editor',
+      ...payload,
+    })
+    .returning();
+
+  return NextResponse.json({ success: true, profile: created, message: 'Profile saved' });
+}

@@ -38,7 +38,7 @@ export const profileSchema = z.object({
   lastName: z.string().max(100).optional().nullable(),
   bio: z.string().max(500).optional().nullable(),
   link: z.string().url().optional().nullable(),
-  username: z.string().min(3).max(32).regex(/^[a-z0-9_]+$/).optional(),
+  username: z.string().min(3).max(32).regex(/^[a-z0-9_]+$/).optional().nullable(),
 });
 
 export type CreatePostInput = z.infer<typeof createPostSchema>;

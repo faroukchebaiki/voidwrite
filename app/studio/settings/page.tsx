@@ -9,6 +9,7 @@ export default async function StudioSettings() {
   const session = await auth();
   const uid = (session?.user as any)?.id as string | undefined;
   const email = (session?.user as any)?.email as string | undefined;
+  const name = (session?.user as any)?.name as string | undefined;
   const role = (session?.user as any)?.role as string | undefined;
   const passkeys = uid ? await db.select().from(authenticators).where(eq(authenticators.userId, uid)) : [];
   return (
@@ -40,7 +41,7 @@ export default async function StudioSettings() {
             </p>
           </section>
         )}
-        <SettingsSingle account={{ email }} passkeys={passkeys as any} />
+        <SettingsSingle account={{ email, name }} passkeys={passkeys as any} />
       </div>
     </main>
   );

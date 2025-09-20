@@ -3,10 +3,11 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 type Passkey = { credentialID: string; counter: number };
 
-export default function SettingsSingle({ account, passkeys }: { account?: { email?: string }; passkeys?: Passkey[] }) {
+export default function SettingsSingle({ account, passkeys }: { account?: { email?: string; name?: string | null }; passkeys?: Passkey[] }) {
   // Profile state (local for now)
   const defaultAvatar = "https://github.com/shadcn.png";
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
@@ -38,6 +39,17 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
   }, []);
 
   const clickUpload = () => fileRef.current?.click();
+  useEffect(() => {
+    if (!account?.name) return;
+    if (first || last) return;
+    const parts = account.name.trim().split(/\s+/);
+    if (parts.length > 0 && !first) {
+      setFirst(parts[0] ?? '');
+    }
+    if (parts.length > 1 && !last) {
+      setLast(parts.slice(1).join(' '));
+    }
+  }, [account?.name, first, last]);
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -55,9 +67,21 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
   };
 
   const onSaveProfile = async () => {
-    const res = await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ firstName: first, lastName: last, username, bio, link: social }) });
-    if (!res.ok) { toast.error('Failed to save'); return; }
-    toast.success('Profile saved');
+    const payload = {
+      firstName: first.trim() || null,
+      lastName: last.trim() || null,
+      username: username.trim() || null,
+      bio: bio.trim() || null,
+      link: social.trim() || null,
+    };
+    const res = await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    if (!res.ok) {
+      const errMessage = await res.json().catch(() => null);
+      toast.error((errMessage as any)?.error || 'Failed to save profile', { position: 'bottom-center' });
+      return;
+    }
+    const data = await res.json().catch(() => null) as any;
+    toast.success(data?.message || 'Profile saved', { position: 'bottom-center' });
   };
 
   const { theme, setTheme } = useTheme();
@@ -107,7 +131,9 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
           </div>
         </div>
         <div className="pt-2 flex justify-end">
-          <button className="px-3 py-2 border rounded" onClick={onSaveProfile}>Save profile</button>
+          <Button type="button" onClick={onSaveProfile} className="w-full sm:w-auto">
+            Save profile
+          </Button>
         </div>
       </section>
       <hr className="my-8 border-t" />
