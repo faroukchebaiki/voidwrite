@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type ComponentType, type SVGProps } from 'react';
 import { useTheme } from 'next-themes';
 import { Facebook, Instagram, Moon, Sun, Twitter, Youtube } from 'lucide-react';
+import { siteConfig } from '@/site';
 
 import { buttonVariants, Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -38,17 +39,17 @@ const PinterestIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
 );
 
 const SOCIAL_LINKS: SocialLink[] = [
-  { href: 'https://facebook.com/voidwrite', label: 'Facebook', icon: Facebook },
-  { href: 'https://instagram.com/voidwrite', label: 'Instagram', icon: Instagram },
-  { href: 'https://pinterest.com/voidwrite', label: 'Pinterest', icon: PinterestIcon },
-  { href: 'https://youtube.com/@voidwrite', label: 'YouTube', icon: Youtube },
-  { href: 'https://twitter.com/voidwrite', label: 'X', icon: Twitter },
-];
+  siteConfig.social.facebook ? { href: siteConfig.social.facebook, label: 'Facebook', icon: Facebook } : null,
+  siteConfig.social.instagram ? { href: siteConfig.social.instagram, label: 'Instagram', icon: Instagram } : null,
+  siteConfig.social.pinterest ? { href: siteConfig.social.pinterest, label: 'Pinterest', icon: PinterestIcon } : null,
+  siteConfig.social.youtube ? { href: siteConfig.social.youtube, label: 'YouTube', icon: Youtube } : null,
+  siteConfig.social.twitter ? { href: siteConfig.social.twitter, label: 'X', icon: Twitter } : null,
+].filter(Boolean) as SocialLink[];
 
 export default function Header({ siteTitle, tags, initialMode }: HeaderProps) {
   const pathname = usePathname();
   const { theme, setTheme, systemTheme } = useTheme();
-  const isStudio = pathname?.startsWith('/studio');
+  const hideHeader = pathname === '/signin' || pathname === '/signup' || pathname?.startsWith('/studio');
   const [mounted, setMounted] = useState(false);
   const [showBrand, setShowBrand] = useState(true);
   const showBrandRef = useRef(true);
@@ -125,7 +126,7 @@ export default function Header({ siteTitle, tags, initialMode }: HeaderProps) {
     return [...base, ...tagItems];
   }, [tags]);
 
-  if (isStudio) return null;
+  if (hideHeader) return null;
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">

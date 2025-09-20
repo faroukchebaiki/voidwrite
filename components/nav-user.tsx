@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { LogOutIcon, MoreVerticalIcon, UsersIcon, SettingsIcon } from "lucide-react"
 import { signOut } from "next-auth/react"
+import { siteConfig } from "@/site";
 
 import {
   Avatar,
@@ -21,13 +22,15 @@ export function NavUser({
   user,
 }: {
   user: {
-    name: string
-    email: string
-    avatar: string
+    name?: string | null
+    email?: string | null
+    avatar?: string | null
   }
 }) {
   const { isMobile } = useSidebar()
-  const [avatar, setAvatar] = useState<string>(user.avatar);
+  const displayName = (user.name && user.name.trim()) || user.email || `${siteConfig.title} member`;
+  const displayEmail = user.email || '';
+  const [avatar, setAvatar] = useState<string>(user.avatar || "");
   useEffect(() => {
     try {
       const url = localStorage.getItem('profile_avatar_url');
@@ -40,6 +43,17 @@ export function NavUser({
     } catch {}
   }, []);
 
+  useEffect(() => {
+    setAvatar(user.avatar || "");
+  }, [user.avatar]);
+
+  const initials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('') || 'VW';
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -50,38 +64,38 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale">
-                <AvatarImage src={avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarImage src={avatar} alt={displayName} />
+                <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate font-medium">{displayName}</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {user.email}
+                  {displayEmail}
                 </span>
               </div>
               <MoreVerticalIcon className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {user.email}
-                  </span>
+            <DropdownMenuContent
+              className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+              side={isMobile ? "bottom" : "right"}
+              align="end"
+              sideOffset={4}
+            >
+              <DropdownMenuLabel className="p-0 font-normal">
+                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                  <Avatar className="h-8 w-8 rounded-lg">
+                    <AvatarImage src={avatar} alt={displayName} />
+                    <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">{displayName}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {displayEmail}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </DropdownMenuLabel>
+              </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => (location.href = "/studio/members")}>
               <UsersIcon />

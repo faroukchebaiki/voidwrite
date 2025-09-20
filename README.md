@@ -19,8 +19,10 @@ Quick Start
 - Copy env: `.env.example` → `.env.local`, fill values
 - Generate migration: `pnpm db:generate`
 - Apply migration: `pnpm db:migrate`
-- Seed demo data (2 admins, 6 authors, sample posts): `pnpm tsx scripts/seed-demo.ts`
 - Dev server: `pnpm dev` → http://localhost:3000
+
+Branding
+- Edit `site.ts` to change the site title, description, tagline, and social links. Redeploy (or restart `pnpm dev`) to apply the changes.
 
 Environment
 - `DATABASE_URL=postgres://…`
@@ -55,8 +57,7 @@ Tech Details
 - Uploads: `app/api/upload/route.ts`
 
 Seeding
-- Demo users/posts/tags: `pnpm tsx scripts/seed-demo.ts`
-- All demo user passwords: `password123!`
+- Bootstrap an initial admin via `pnpm tsx scripts/seed.ts` (requires `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` in env)
 
 Deploy (Vercel)
 - Provision Neon or Vercel Postgres; set `DATABASE_URL`

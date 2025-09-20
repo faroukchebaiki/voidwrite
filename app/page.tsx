@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { db } from "@/db";
-import { posts, tags, settings } from "@/db/schema";
+import { posts, tags } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import {
   Card,
@@ -15,12 +15,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { siteConfig } from "@/site";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 30;
 
 export default async function Home({ searchParams }: { searchParams?: Promise<Record<string, string>> }) {
-  const [site] = await db.select().from(settings).limit(1);
   const allPosts = await db
     .select()
     .from(posts)
@@ -43,9 +43,7 @@ export default async function Home({ searchParams }: { searchParams?: Promise<Re
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const paged = filtered.slice(start, end);
-  const attributionLabel = site?.siteTitle
-    ? `From ${site.siteTitle}`
-    : 'From the Voidwrite editors';
+  const attributionLabel = `From ${siteConfig.title}`;
   const numberFormatter = new Intl.NumberFormat();
   const remoteHosts = new Set(['public.blob.vercel-storage.com']);
 

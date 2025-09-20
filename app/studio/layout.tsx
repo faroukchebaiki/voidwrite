@@ -7,9 +7,10 @@ import { auth } from '@/auth-app';
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   const role = (session?.user as any)?.role as string | undefined;
+  const user = session?.user as { name?: string | null; email?: string | null; image?: string | null } | undefined;
   return (
     <SidebarProvider>
-      <AppSidebar variant="inset" role={role} />
+      <AppSidebar variant="inset" role={role} user={user} />
       <SidebarInset>
         <React.Suspense fallback={null}>
           <SiteHeader />

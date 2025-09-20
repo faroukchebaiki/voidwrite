@@ -3,7 +3,7 @@
 import * as React from "react"
 import { BellIcon, FileTextIcon, LayoutDashboardIcon, ListIcon, PlusCircleIcon, Tag as TagIcon, AlertCircle } from "lucide-react"
 
-import { NavMain } from "@/components/nav-main"
+import { NavMain, type NavItem } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -11,33 +11,37 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar"
 
-const data = {
-  user: {
-    name: "Voidwrite",
-    email: "studio@voidwrite.local",
-    avatar: "https://github.com/shadcn.png",
-  },
-  navMain: [
-    { key: 'dashboard', title: "Dashboard", url: "/studio", icon: LayoutDashboardIcon },
-    { key: 'notifications', title: "Notifications", url: "/studio/notifications", icon: BellIcon },
-    { key: 'new', title: "New Post", url: "/studio/posts/new", icon: PlusCircleIcon },
-    { key: 'pending', title: "Pending", url: "/studio/pending", icon: AlertCircle },
-    { key: 'my', title: "My Posts", url: "/studio/my-blogs", icon: ListIcon },
-    { key: 'all', title: "All Posts", url: "/studio/posts", icon: FileTextIcon },
-    { key: 'tags', title: "Tags", url: "/studio/tags", icon: TagIcon },
-    { key: 'invite', title: "Invite", url: "/studio/invite", icon: PlusCircleIcon },
-  ],
-}
+const NAV_ITEMS: NavItem[] = [
+  { key: 'dashboard', title: "Dashboard", url: "/studio", icon: LayoutDashboardIcon },
+  { key: 'notifications', title: "Notifications", url: "/studio/notifications", icon: BellIcon },
+  { key: 'new', title: "New Post", url: "/studio/posts/new", icon: PlusCircleIcon },
+  { key: 'pending', title: "Pending", url: "/studio/pending", icon: AlertCircle },
+  { key: 'my', title: "My Posts", url: "/studio/my-blogs", icon: ListIcon },
+  { key: 'all', title: "All Posts", url: "/studio/posts", icon: FileTextIcon },
+  { key: 'tags', title: "Tags", url: "/studio/tags", icon: TagIcon },
+  { key: 'invite', title: "Invite", url: "/studio/invite", icon: PlusCircleIcon },
+] as const;
 
-export function AppSidebar({ role, ...props }: { role?: string } & React.ComponentProps<typeof Sidebar>) {
+type SidebarUser = {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+};
+
+export function AppSidebar({ role, user, ...props }: { role?: string; user?: SidebarUser } & React.ComponentProps<typeof Sidebar>) {
   const isAdmin = role === 'admin';
   const nav = isAdmin
-    ? data.navMain
-    : data.navMain.filter((i) => ['dashboard','new','my','notifications'].includes(String(i.key)));
+    ? [...NAV_ITEMS]
+    : NAV_ITEMS.filter((i) => ['dashboard','new','my','notifications'].includes(String(i.key)));
+  const sidebarUser = {
+    name: user?.name || user?.email || 'Member',
+    email: user?.email || '',
+    avatar: user?.image || '',
+  };
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <NavUser user={data.user} />
+        <NavUser user={sidebarUser} />
       </SidebarHeader>
       <SidebarContent>
         <React.Suspense fallback={null}>

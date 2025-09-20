@@ -1,18 +1,11 @@
 import { db } from "../db";
-import { settings, profiles } from "../db/schema";
+import { profiles } from "../db/schema";
 import { users } from "../db/auth-schema";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "../lib/password";
 
 async function main() {
   console.log("Seeding database…");
-  const [site] = await db.select().from(settings).limit(1);
-  if (!site) {
-    await db.insert(settings).values({ siteTitle: "Voidwrite", siteDescription: "Just another blog" });
-    console.log("✔ Settings inserted");
-  } else {
-    console.log("• Settings already exist");
-  }
 
   const email = process.env.SEED_ADMIN_EMAIL;
   const password = process.env.SEED_ADMIN_PASSWORD;

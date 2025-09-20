@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { posts, settings } from '@/db/schema';
+import { posts } from '@/db/schema';
 import { desc, eq } from 'drizzle-orm';
+import { siteConfig } from '@/site';
 
 export const revalidate = 300;
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const origin = `${url.protocol}//${url.host}`;
-  const [site] = await db.select().from(settings).limit(1);
   const all = await db
     .select()
     .from(posts)
@@ -31,9 +31,9 @@ export async function GET(request: Request) {
   const xml = `<?xml version="1.0" encoding="UTF-8" ?>
   <rss version="2.0">
     <channel>
-      <title><![CDATA[${site?.siteTitle || 'Voidwrite'}]]></title>
+      <title><![CDATA[${siteConfig.title}]]></title>
       <link>${origin}</link>
-      <description><![CDATA[${site?.siteDescription || ''}]]></description>
+      <description><![CDATA[${siteConfig.description}]]></description>
       ${items}
     </channel>
   </rss>`;

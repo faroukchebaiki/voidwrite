@@ -11,7 +11,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-type NavItem = { key?: 'dashboard'|'notifications'|'new'|'my'|'all'|'tags'|'pending'|'invite'|'settings'|string; title: string; url: string; icon?: LucideIcon };
+export type NavItem = { key?: 'dashboard'|'notifications'|'new'|'my'|'all'|'tags'|'pending'|'invite'|'settings'|string; title: string; url: string; icon?: LucideIcon };
 
 export function NavMain({ items }: { items: NavItem[] }) {
   const pathname = usePathname();

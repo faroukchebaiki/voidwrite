@@ -8,16 +8,17 @@ import Footer from '@/components/Footer';
 import { Analytics } from '@/lib/analytics';
 import { cookies } from 'next/headers';
 import { db } from '@/db';
-import { settings, tags } from '@/db/schema';
+import { tags } from '@/db/schema';
 import { sql } from 'drizzle-orm';
+import { siteConfig } from '@/site';
 
 const headingFont = Playfair_Display({ subsets: ['latin'], variable: '--font-heading' });
 const bodyFont = Inter_Tight({ subsets: ['latin'], variable: '--font-sans' });
 const logoFont = UnifrakturCook({ subsets: ['latin'], variable: '--font-logo', weight: '700' });
 
 export const metadata: Metadata = {
-  title: 'Voidwrite Blog',
-  description: 'A fast, modern blog built with Next.js + Drizzle + Auth.js',
+  title: siteConfig.title,
+  description: siteConfig.description,
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -25,7 +26,6 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const themeCookie = cookieStore.get('vw_theme')?.value as 'light'|'dark'|'system'|undefined;
   const initialClass = themeCookie === 'dark' ? 'dark' : themeCookie === 'light' ? '' : '';
   const initialMode: 'light' | 'dark' = themeCookie === 'dark' ? 'dark' : 'light';
-  const [site] = await db.select().from(settings).limit(1);
   const navTags = await db
     .select({ name: tags.name, slug: tags.slug })
     .from(tags)
@@ -39,7 +39,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Header
-            siteTitle={site?.siteTitle ?? 'Voidwrite'}
+            siteTitle={siteConfig.title}
             tags={navTags
               .map((t) => ({ name: (t.name ?? t.slug) ?? '', slug: t.slug ?? '' }))
               .filter((t) => t.slug)}

@@ -5,6 +5,7 @@
 - `.gitignore` — Patterns keeping build outputs, dependencies, and local secrets out of version control.
 - `LICENSE` — MIT license covering the Voidwrite project.
 - `README.md` — Project overview, setup steps, and feature documentation.
+- `site.ts` — Central site metadata (title, description, tagline, social links).
 - `auth-app.ts` — NextAuth server configuration with credentials/passkey providers and Drizzle adapter.
 - `auth-middleware.ts` — Lightweight NextAuth setup for middleware-based JWT session checks.
 - `components.json` — shadcn/ui CLI configuration with path aliases and style presets.
@@ -35,7 +36,6 @@
   - `PostEditor.tsx` — Editor experience for updating posts, status, assignees, and admin notes.
   - `PostsTableClient.tsx` — Interactive posts table with filters, pagination, and actions.
   - `RichEditor.tsx` — TipTap-based rich text editor with uploads, embeds, and formatting controls.
-  - `SettingsForm.tsx` — Admin form for updating global site settings via the API.
   - `SettingsSingle.tsx` — User profile/security settings (avatar, bio, passkeys, theme, credentials).
   - `SignOutButton.tsx` — Reusable button that triggers NextAuth `signOut` with a callback URL.
   - `UserCombobox.tsx` — Keyboard-friendly combobox for selecting users from `/api/users`.
@@ -85,7 +85,6 @@
     - `_journal.json` — Drizzle migration journal tracking execution history.
 - `scripts/` — Utility scripts for provisioning and diagnostics.
   - `check-auth.ts` — Verifies credentials login for a given email/password against the database.
-  - `seed-demo.ts` — Seeds demo admins, authors, tags, and posts with lorem ipsum content.
   - `seed.ts` — Seeds default settings and an admin user driven by env variables.
 - `lib/` — Shared utilities and adapters.
   - `analytics.ts` — Re-export of Vercel Analytics client component.
@@ -94,11 +93,11 @@
   - `markdown.ts` — Markdown rendering with sanitize-html sanitization.
   - `password.ts` — Password hashing/verification using `argon2` or `@node-rs/argon2` fallback.
   - `utils.ts` — `cn` helper combining Tailwind class strings.
-  - `validation.ts` — Zod schemas for posts, tags, settings, profile updates, assignments, and signup.
+  - `validation.ts` — Zod schemas for posts, tags, profile updates, assignments, and signup.
 - `db/` — Database connection and schema definitions.
   - `auth-schema.ts` — Auth.js adapter tables (users, accounts, sessions, authenticators).
   - `index.ts` — Drizzle client initialization with a Postgres connection pool.
-  - `schema.ts` — CMS-specific tables (profiles, posts, tags, settings, analytics, notifications).
+  - `schema.ts` — CMS-specific tables (profiles, posts, tags, analytics, notifications, legacy settings table).
 - `app/` — Next.js App Router pages, layouts, and API routes.
   - `globals.css` — Tailwind v4 layer definitions and CSS custom properties.
   - `layout.tsx` — Root layout wiring the theme provider, header/footer, and analytics.
@@ -111,7 +110,6 @@
     - `account/passkeys/route.ts` — Removes stored passkeys through the NextAuth authenticators table.
     - `account/password/route.ts` — Updates the current user’s credentials password hash.
     - `account/email/route.ts` — Changes the signed-in user’s email address.
-    - `settings/route.ts` — Fetches and updates global site settings (admin only).
     - `invites/route.ts` — Admin endpoints for listing and creating invite codes.
     - `users/route.ts` — Admin-only list of users with profile metadata.
     - `users/[id]/route.ts` — Deletes a user after transferring their content elsewhere.
@@ -137,7 +135,7 @@
     - `pending/page.tsx` — Server page loading submitted posts and rendering the pending client.
     - `tags/client.tsx` — Client UI for creating, editing, and deleting tags.
     - `tags/page.tsx` — Admin tag management page that loads tag data.
-    - `settings/page.tsx` — Studio settings page combining site and personal preferences.
+    - `settings/page.tsx` — Studio settings page with guidance plus personal profile/password controls.
     - `members/page.tsx` — Members list showing admins/authors and post counts.
     - `members/[id]/page.tsx` — Admin detail view for a specific member with controls.
     - `invite/client.tsx` — Client UI to generate and copy invite codes.
@@ -152,4 +150,3 @@
   - `sitemap.xml/route.ts` — Builds an XML sitemap covering posts and tags.
   - `posts/[slug]/page.tsx` — Public post page rendering markdown content and tracking views.
   - `signin/page.tsx` — Sign-in form supporting credentials and passkeys.
-

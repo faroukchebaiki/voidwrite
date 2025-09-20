@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const body = await req.json();
   const parsed = signupSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
-  const { email, password, name, role: requestedRole, inviteCode } = parsed.data as { email: string; password: string; name?: string | null; role?: 'admin' | 'editor'; inviteCode?: string };
+  const { email, password, name, inviteCode } = parsed.data as { email: string; password: string; name?: string | null; inviteCode?: string };
 
   const [existing] = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
   if (existing) return NextResponse.json({ error: "Email already in use" }, { status: 409 });
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   const isFirstAfter = existingProfiles.length === 0;
 
   // default to admin for first user (master), otherwise author/editor; ignore invite role override for first
-  const finalRole = isFirstAfter ? ("admin" as const) : ((requestedRole as any) || ("editor" as const));
+  const finalRole = isFirstAfter ? ("admin" as const) : ("editor" as const);
   await db
     .insert(profiles)
     .values({ userId: createdUser.id, role: finalRole as any, passwordHash: hash, isMaster: isFirstAfter });
