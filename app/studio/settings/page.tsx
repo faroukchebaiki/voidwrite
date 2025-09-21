@@ -1,7 +1,8 @@
 import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { authenticators } from "@/db/auth-schema";
-import { eq } from "drizzle-orm";
+import { passkeyLabels } from "@/db/schema";
+import { eq, sql } from "drizzle-orm";
 import SettingsSingle from "@/components/SettingsSingle";
 import { siteConfig } from "@/site";
 
@@ -11,7 +12,27 @@ export default async function StudioSettings() {
   const email = (session?.user as any)?.email as string | undefined;
   const name = (session?.user as any)?.name as string | undefined;
   const role = (session?.user as any)?.role as string | undefined;
-  const passkeys = uid ? await db.select().from(authenticators).where(eq(authenticators.userId, uid)) : [];
+  if (uid) {
+    await db.execute(sql`
+      create table if not exists passkey_labels (
+        credential_id text primary key,
+        user_id text not null,
+        label text not null,
+        updated_at timestamp not null default now()
+      );
+    `);
+  }
+  const passkeys = uid
+    ? await db
+        .select({
+          credentialID: authenticators.credentialID,
+          counter: authenticators.counter,
+          label: passkeyLabels.label,
+        })
+        .from(authenticators)
+        .leftJoin(passkeyLabels, eq(passkeyLabels.credentialId, authenticators.credentialID))
+        .where(eq(authenticators.userId, uid))
+    : [];
   return (
     <main className="space-y-3">
       <h1 className="text-2xl font-semibold">Settings</h1>

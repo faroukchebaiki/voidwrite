@@ -9,7 +9,7 @@ import { startRegistration } from "@simplewebauthn/browser";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 
-type Passkey = { credentialID: string; counter: number };
+type Passkey = { credentialID: string; counter: number; label?: string | null };
 
 export default function SettingsSingle({ account, passkeys }: { account?: { email?: string; name?: string | null }; passkeys?: Passkey[] }) {
   // Profile state (local for now)
@@ -65,6 +65,9 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
     if (typeof window === 'undefined') return;
     const labels: Record<string, string> = {};
     (passkeys || []).forEach((item) => {
+      if (item.label) {
+        labels[item.credentialID] = item.label;
+      }
       const stored = localStorage.getItem(`pk_${item.credentialID}`);
       if (stored) labels[item.credentialID] = stored;
     });
@@ -192,6 +195,26 @@ const storePasskeyLabel = (
       }
       return next;
     });
+  }
+};
+
+const persistPasskeyLabel = async (credentialId: string, label?: string) => {
+  try {
+    if (label && label.length > 0) {
+      await fetch('/api/passkeys/label', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credentialId, label }),
+      });
+    } else {
+      await fetch('/api/passkeys/label', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credentialId }),
+      });
+    }
+  } catch {
+    // ignore network/permission errors; labels remain stored locally
   }
 };
 
@@ -366,7 +389,7 @@ const storePasskeyLabel = (
     openPasskeyDialog('edit', credentialId);
   };
 
-  const handleSaveEditedPasskey = () => {
+  const handleSaveEditedPasskey = async () => {
     if (!activeCredentialId) return;
     const label = passkeyNameInput.trim();
     storePasskeyLabel(activeCredentialId, label || undefined, setPasskeyLabels);
@@ -382,6 +405,7 @@ const storePasskeyLabel = (
         duration: 2500,
       });
     }
+    await persistPasskeyLabel(activeCredentialId, label || undefined);
     namingNewPasskeyRef.current = false;
     pendingEditIdRef.current = null;
     closePasskeyDialog();
@@ -409,12 +433,13 @@ const storePasskeyLabel = (
         throw new Error(text || 'Failed to delete passkey.');
       }
       storePasskeyLabel(activeCredentialId, undefined, setPasskeyLabels);
+      await persistPasskeyLabel(activeCredentialId, undefined);
       pendingEditIdRef.current = null;
       namingNewPasskeyRef.current = false;
-    toast.success('Passkey removed.', { position: 'bottom-center', duration: 3000 });
-    closePasskeyDialog();
-    try {
-      router.refresh();
+      toast.success('Passkey removed.', { position: 'bottom-center', duration: 3000 });
+      closePasskeyDialog();
+      try {
+        router.refresh();
     } catch {
         /* ignore refresh errors */
       }
@@ -494,7 +519,8 @@ const storePasskeyLabel = (
           <div className="divide-y rounded border mt-2">
             {list.length === 0 && <div className="p-3 text-sm text-muted-foreground">No passkeys added yet.</div>}
             {list.map((a) => {
-              const label = passkeyLabels[a.credentialID] || 'Unnamed passkey';
+              const serverLabel = (a as { label?: string | null }).label;
+              const label = passkeyLabels[a.credentialID] ?? serverLabel ?? 'Unnamed passkey';
               return (
                 <div key={a.credentialID} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1 break-words">
@@ -516,7 +542,7 @@ const storePasskeyLabel = (
         </div>
       </section>
       <Dialog open={passkeyDialogOpen} onOpenChange={(open) => { if (!open) closePasskeyDialog(); }}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-md overflow-y-auto p-5 sm:p-6">
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-sm overflow-y-auto p-5 sm:max-w-md sm:p-6">
           {passkeyDialogMode === 'register' && (
             <>
               <DialogHeader>
@@ -524,59 +550,58 @@ const storePasskeyLabel = (
                 <DialogDescription>Secure your account with a trusted device credential.</DialogDescription>
               </DialogHeader>
               {registerPhase === 'password' ? (
-                <>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label htmlFor="passkey-password" className="text-sm font-medium">Account password</label>
-                      <div className="relative">
-                        <input
-                          id="passkey-password"
-                          type={showRegisterPassword ? 'text' : 'password'}
-                          className="w-full rounded-md border px-3 py-2 pr-10 text-sm"
-                          value={passwordInput}
-                          onChange={(e) => {
-                            setPasswordInput(e.target.value);
-                            if (passwordStatus !== 'idle') {
-                              setPasswordStatus('idle');
-                              setPasswordError(null);
-                            }
-                            if (webauthnError) setWebauthnError(null);
-                          }}
-                          autoComplete="current-password"
-                          disabled={passwordStatus === 'verifying'}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleVerifyPasswordForRegistration();
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowRegisterPassword((prev) => !prev)}
-                          className="absolute inset-y-0 right-2 flex items-center text-muted-foreground hover:text-foreground"
-                          aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}
-                        >
-                          {showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                      {passwordError && <p className="text-xs text-destructive">{passwordError}</p>}
-                      {webauthnError && <p className="text-xs text-destructive">{webauthnError}</p>}
+                <form
+                  className="space-y-4"
+                  autoComplete="off"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleVerifyPasswordForRegistration();
+                  }}
+                >
+                  <div className="space-y-2">
+                    <label htmlFor="passkey-password" className="text-sm font-medium">Account password</label>
+                    <div className="relative">
+                      <input
+                        id="passkey-password"
+                        name="current-password"
+                        type={showRegisterPassword ? 'text' : 'password'}
+                        className="w-full rounded-md border px-3 py-2 pr-10 text-sm"
+                        value={passwordInput}
+                        onChange={(e) => {
+                          setPasswordInput(e.target.value);
+                          if (passwordStatus !== 'idle') {
+                            setPasswordStatus('idle');
+                            setPasswordError(null);
+                          }
+                          if (webauthnError) setWebauthnError(null);
+                        }}
+                        autoComplete="current-password"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        disabled={passwordStatus === 'verifying'}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRegisterPassword((prev) => !prev)}
+                        className="absolute inset-y-0 right-2 flex items-center text-muted-foreground hover:text-foreground"
+                        aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
+                    {passwordError && <p className="text-xs text-destructive">{passwordError}</p>}
+                    {webauthnError && <p className="text-xs text-destructive">{webauthnError}</p>}
                   </div>
                   <DialogFooter>
                     <Button type="button" variant="ghost" onClick={closePasskeyDialog}>
                       Cancel
                     </Button>
-                    <Button
-                      type="button"
-                      onClick={handleVerifyPasswordForRegistration}
-                      disabled={passwordStatus === 'verifying'}
-                    >
+                    <Button type="submit" disabled={passwordStatus === 'verifying'}>
                       {passwordStatus === 'verifying' ? 'Verifying…' : 'Verify password'}
                     </Button>
                   </DialogFooter>
-                </>
+                </form>
               ) : (
                 <>
                   <div className="space-y-4">
@@ -647,9 +672,17 @@ const storePasskeyLabel = (
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="delete-passkey-password" className="text-sm font-medium">Account password</label>
-                  <div className="relative">
+                  <form
+                    className="relative"
+                    autoComplete="off"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleConfirmDeletePasskey();
+                    }}
+                  >
                     <input
                       id="delete-passkey-password"
+                      name="current-password"
                       type={showDeletePassword ? 'text' : 'password'}
                       className="w-full rounded-md border px-3 py-2 pr-10 text-sm"
                       value={passwordInput}
@@ -661,13 +694,10 @@ const storePasskeyLabel = (
                         }
                       }}
                       autoComplete="current-password"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       disabled={deleteProcessing}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleConfirmDeletePasskey();
-                        }
-                      }}
                     />
                     <button
                       type="button"
@@ -677,18 +707,18 @@ const storePasskeyLabel = (
                     >
                       {showDeletePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
-                  </div>
+                    <DialogFooter className="mt-4">
+                      <Button type="button" variant="ghost" onClick={closePasskeyDialog} disabled={deleteProcessing}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" variant="destructive" disabled={deleteProcessing}>
+                        {deleteProcessing ? 'Removing…' : 'Delete'}
+                      </Button>
+                    </DialogFooter>
+                  </form>
                   {passwordError && <p className="text-xs text-destructive">{passwordError}</p>}
                 </div>
               </div>
-              <DialogFooter>
-                <Button type="button" variant="ghost" onClick={closePasskeyDialog} disabled={deleteProcessing}>
-                  Cancel
-                </Button>
-                <Button type="button" variant="destructive" onClick={handleConfirmDeletePasskey} disabled={deleteProcessing}>
-                  {deleteProcessing ? 'Removing…' : 'Delete'}
-                </Button>
-              </DialogFooter>
             </>
           )}
         </DialogContent>

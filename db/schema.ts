@@ -88,6 +88,13 @@ export const webauthnCredentials = pgTable("webauthn_credentials", {
   credIdUnique: uniqueIndex("webauthn_credential_id_unique").on(table.credentialId),
 }));
 
+export const passkeyLabels = pgTable("passkey_labels", {
+  credentialId: text("credential_id").primaryKey(),
+  userId: text("user_id").notNull(),
+  label: text("label").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
+});
+
 // Invitation codes for staff onboarding
 export const invites = pgTable("invites", {
   code: text("code").primaryKey(),
