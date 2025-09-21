@@ -488,7 +488,7 @@ const storePasskeyLabel = (
         <div className="space-y-2">
           <div className="text-sm font-medium">Passkeys</div>
           <p className="text-sm text-muted-foreground">You can register up to 5. You currently have {list.length}.</p>
-          <Button type="button" variant="outline" className="text-sm" onClick={handleRegisterClick}>
+          <Button type="button" variant="outline" className="w-full text-sm sm:w-auto" onClick={handleRegisterClick}>
             Register new passkey
           </Button>
           <div className="divide-y rounded border mt-2">
@@ -497,15 +497,15 @@ const storePasskeyLabel = (
               const label = passkeyLabels[a.credentialID] || 'Unnamed passkey';
               return (
                 <div key={a.credentialID} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
+                  <div className="space-y-1 break-words">
                     <div className="text-sm font-medium">{label}</div>
                     <div className="text-xs text-muted-foreground break-all">ID: {a.credentialID}</div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => handleEditPasskey(a.credentialID)}>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => handleEditPasskey(a.credentialID)}>
                       Rename
                     </Button>
-                    <Button type="button" variant="destructive" size="sm" onClick={() => handleDeletePasskey(a.credentialID)}>
+                    <Button type="button" variant="destructive" size="sm" className="w-full sm:w-auto" onClick={() => handleDeletePasskey(a.credentialID)}>
                       Delete
                     </Button>
                   </div>
@@ -516,7 +516,7 @@ const storePasskeyLabel = (
         </div>
       </section>
       <Dialog open={passkeyDialogOpen} onOpenChange={(open) => { if (!open) closePasskeyDialog(); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-md overflow-y-auto p-5 sm:p-6">
           {passkeyDialogMode === 'register' && (
             <>
               <DialogHeader>
@@ -605,7 +605,7 @@ const storePasskeyLabel = (
             <>
               <DialogHeader>
                 <DialogTitle>Rename passkey</DialogTitle>
-                <DialogDescription>Update how this device is labelled in your account.</DialogDescription>
+                <DialogDescription>Give this passkey a recognizable name.</DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
                 <div className="space-y-2">
