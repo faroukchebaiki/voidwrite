@@ -1,8 +1,8 @@
 import { db } from "@/db";
-import { posts, postNotes } from "@/db/schema";
+import { posts, postNotes, postTags, tags } from "@/db/schema";
 import { users } from "@/db/auth-schema";
 import { auth } from "@/auth-app";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import PostEditor from "@/components/PostEditor";
 
@@ -41,13 +41,27 @@ export default async function EditPostPage({ params }: any) {
     authorName: n.authorName || n.authorEmail || "Unknown",
   }));
 
+  const tagRows = await db
+    .select({ slug: tags.slug })
+    .from(postTags)
+    .innerJoin(tags, eq(tags.id, postTags.tagId))
+    .where(eq(postTags.postId, id));
+  const initialTags = tagRows.map((t) => t.slug);
+  const availableTags = await db
+    .select({ slug: tags.slug, name: tags.name })
+    .from(tags)
+    .orderBy(sql`${tags.name} asc`);
+
   return (
     <main>
       <PostEditor
+        mode="edit"
+        tags={availableTags.map((t) => ({ slug: t.slug, name: t.name || t.slug }))}
         initial={{ ...post, assignedToName: assignee?.label }}
         role={role}
         uid={uid}
         notes={notes}
+        initialTags={initialTags}
       />
     </main>
   );

@@ -45,7 +45,7 @@ export default async function Home({ searchParams }: { searchParams?: Promise<Re
   const paged = filtered.slice(start, end);
   const attributionLabel = `From ${siteConfig.title}`;
   const numberFormatter = new Intl.NumberFormat();
-  const remoteHosts = new Set(['public.blob.vercel-storage.com']);
+  const remoteHosts = new Set(['public.blob.vercel-storage.com', 'p06e0neae38vv52o.public.blob.vercel-storage.com']);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">

@@ -1,5 +1,5 @@
 "use client";
-import { useTransition } from "react";
+import { useMemo, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,11 @@ export default function PostsTableClient({ rows, total, limit, mine, draftOnly, 
     const res = await fetch(`/api/posts/${id}`, { method: "DELETE" });
     if (res.ok) router.refresh();
   };
+
+  const formatDate = useMemo(
+    () => (value: string) => new Date(value).toLocaleString(),
+    []
+  );
 
   return (
     <div className="space-y-3">
@@ -152,7 +157,11 @@ export default function PostsTableClient({ rows, total, limit, mine, draftOnly, 
                   )}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{p.visits}</TableCell>
-                <TableCell>{new Date(p.updatedAt).toLocaleString()}</TableCell>
+                <TableCell>
+                  <time dateTime={p.updatedAt} suppressHydrationWarning>
+                    {formatDate(p.updatedAt)}
+                  </time>
+                </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

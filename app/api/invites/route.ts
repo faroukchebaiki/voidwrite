@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth-middleware";
+import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { invites } from "@/db/schema";
 
@@ -20,4 +20,3 @@ export async function POST() {
   await db.insert(invites).values({ code, createdBy: uid });
   return NextResponse.json({ code });
 }
-

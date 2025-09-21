@@ -21,10 +21,15 @@ export async function middleware(req: NextRequest) {
     const loginUrl = new URL('/signin', req.url);
     return NextResponse.redirect(loginUrl);
   }
-  // Admin-only sections: all posts list, tags, invite, members, pending
-  const adminOnly = ['/studio/posts', '/studio/tags', '/studio/invite', '/studio/members', '/studio/pending'];
-  if (adminOnly.some((p)=> pathname === p || pathname.startsWith(p + '/'))) {
-    if (role !== 'admin') {
+  // Admin-only sections: all posts listing, tags management, invite codes, pending queue
+  const adminExact = ['/studio/posts', '/studio/tags', '/studio/invite', '/studio/pending'];
+  const adminPrefixes = ['/studio/posts/', '/studio/tags/', '/studio/invite/', '/studio/pending/'];
+  if (role !== 'admin') {
+    const segments = pathname.split('/').filter(Boolean);
+    const isPostDetail = segments[0] === 'studio' && segments[1] === 'posts' && segments.length === 3;
+    const isAdminExact = adminExact.includes(pathname);
+    const isAdminPrefixed = adminPrefixes.some((prefix) => pathname.startsWith(prefix) && !pathname.startsWith('/studio/posts/new'));
+    if ((isAdminExact || isAdminPrefixed) && !isPostDetail) {
       return NextResponse.redirect(new URL('/studio/my-blogs', req.url));
     }
   }

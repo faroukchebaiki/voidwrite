@@ -19,6 +19,7 @@ export function SiteHeader() {
   const [canPublish, setCanPublish] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
   const [canAssign, setCanAssign] = useState(false);
+  const [publishLabel, setPublishLabel] = useState('Publish');
   const breadcrumbs = useMemo(() => {
     const items: Array<{ label: string; href: string }> = [
       { label: "Voidwrite Studio", href: "/studio" },
@@ -45,19 +46,22 @@ export function SiteHeader() {
 
   useEffect(() => {
     const handler = (event: Event) => {
-      const detail = (event as CustomEvent<{ canSave?: boolean; canPublish?: boolean; canDelete?: boolean; canAssign?: boolean }>).detail || {};
+      const detail = (event as CustomEvent<{ canSave?: boolean; canPublish?: boolean; canDelete?: boolean; canAssign?: boolean; publishLabel?: string }>).detail || {};
       if (typeof detail.canSave === "boolean") setCanSave(detail.canSave);
       if (typeof detail.canPublish === "boolean") setCanPublish(detail.canPublish);
       if (typeof detail.canDelete === "boolean") setCanDelete(detail.canDelete);
       if (typeof detail.canAssign === "boolean") setCanAssign(detail.canAssign);
+      if (typeof detail.publishLabel === 'string') setPublishLabel(detail.publishLabel);
     };
     window.addEventListener("voidwrite:actions-state", handler);
+    window.dispatchEvent(new CustomEvent('voidwrite:request-actions-state'));
     return () => {
       window.removeEventListener("voidwrite:actions-state", handler);
       setCanSave(false);
       setCanPublish(false);
       setCanDelete(false);
       setCanAssign(false);
+      setPublishLabel('Publish');
     };
   }, [pathname]);
 
@@ -92,7 +96,7 @@ export function SiteHeader() {
           {showActions && !isMobile && (
             <>
               <Button size="sm" variant="outline" onClick={onSave} disabled={!canSave}>Save</Button>
-              <Button size="sm" onClick={onPublish} disabled={!canPublish}>Publish</Button>
+              <Button size="sm" onClick={onPublish} disabled={!canPublish}>{publishLabel}</Button>
             </>
           )}
           {showActions && (
@@ -106,7 +110,7 @@ export function SiteHeader() {
                 {isMobile && (
                   <>
                     <DropdownMenuItem disabled={!canSave} onSelect={onSave}>Save</DropdownMenuItem>
-                    <DropdownMenuItem disabled={!canPublish} onSelect={onPublish}>Publish</DropdownMenuItem>
+                    <DropdownMenuItem disabled={!canPublish} onSelect={onPublish}>{publishLabel}</DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>
                 )}

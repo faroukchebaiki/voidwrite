@@ -30,22 +30,24 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const displayName = (user.name && user.name.trim()) || user.email || `${siteConfig.title} member`;
   const displayEmail = user.email || '';
-  const [avatar, setAvatar] = useState<string>(user.avatar || "");
+  const placeholder = "https://github.com/shadcn.png";
+  const [avatar, setAvatar] = useState<string>(user.avatar || placeholder);
   useEffect(() => {
+    const base = user.avatar || placeholder;
+    setAvatar(base);
+    if (typeof window === 'undefined') return;
     try {
-      const url = localStorage.getItem('profile_avatar_url');
-      if (url) setAvatar(url);
+      const stored = window.localStorage.getItem('profile_avatar_url');
+      if (stored) setAvatar(stored);
       const onStorage = (e: StorageEvent) => {
-        if (e.key === 'profile_avatar_url' && e.newValue) setAvatar(e.newValue);
+        if (e.key === 'profile_avatar_url') {
+          setAvatar(e.newValue || base);
+        }
       };
       window.addEventListener('storage', onStorage);
       return () => window.removeEventListener('storage', onStorage);
     } catch {}
-  }, []);
-
-  useEffect(() => {
-    setAvatar(user.avatar || "");
-  }, [user.avatar]);
+  }, [user.avatar, placeholder]);
 
   const initials = displayName
     .split(/\s+/)

@@ -24,14 +24,19 @@ type PostNote = {
   authorName: string;
 };
 
+type TagOption = { slug: string; name: string };
+
 type PostEditorProps = {
-  initial: any;
+  initial?: any;
   role?: string;
   uid?: string;
-  notes: PostNote[];
+  notes?: PostNote[];
+  tags: TagOption[];
+  mode: "create" | "edit";
+  initialTags?: string[];
 };
 
-export default function PostEditor({ initial, role, uid, notes: initialNotes }: PostEditorProps) {
+export default function PostEditor({ initial = {}, role, uid, notes: initialNotes = [], tags, mode, initialTags = [] }: PostEditorProps) {
   const router = useRouter();
   const isAdmin = role === "admin";
 
@@ -43,6 +48,9 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
   const [content, setContent] = useState(initial.content || "");
   const [status, setStatus] = useState<string>(String(initial.status || "draft"));
   const [notes, setNotes] = useState<PostNote[]>(initialNotes || []);
+  useEffect(() => {
+    setNotes(initialNotes || []);
+  }, [initialNotes]);
   const [noteDraft, setNoteDraft] = useState("");
 
   const [saving, setSaving] = useState(false);
@@ -60,6 +68,10 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
   const [currentAssigneeName, setCurrentAssigneeName] = useState<string | null>(
     initial.assignedToName || null
   );
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
+  const [tagSearch, setTagSearch] = useState("");
+  const [postId, setPostId] = useState<number | null>(initial.id ?? null);
+  const heading = mode === 'create' ? 'Create Post' : 'Edit Post';
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -69,6 +81,17 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
     [content]
   );
   const isComplete = hasTitle && hasContent;
+  const filteredTagOptions = useMemo(() => {
+    const q = tagSearch.trim().toLowerCase();
+    if (!q) return tags;
+    return tags.filter((tag) => tag.name.toLowerCase().includes(q) || tag.slug.toLowerCase().includes(q));
+  }, [tagSearch, tags]);
+  const toggleTag = useCallback((slugValue: string) => {
+    setSelectedTags((prev) => (prev.includes(slugValue) ? prev.filter((item) => item !== slugValue) : [...prev, slugValue]));
+  }, []);
+  useEffect(() => {
+    setSelectedTags(initialTags);
+  }, [initialTags]);
 
   const deleteAllowed = useMemo(
     () => canDeletePermission(initial, status, currentAssigneeId, uid, role),
@@ -86,11 +109,11 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
   );
 
   const emitActionState = useCallback(
-    (canSave: boolean, canPublish: boolean, canAssign: boolean) => {
+    (canSave: boolean, canPublish: boolean, canAssign: boolean, publishLabel: string) => {
       if (typeof window !== "undefined") {
         window.dispatchEvent(
           new CustomEvent("voidwrite:actions-state", {
-            detail: { canSave, canPublish, canDelete: deleteAllowed, canAssign },
+            detail: { canSave, canPublish, canDelete: deleteAllowed, canAssign, publishLabel },
           })
         );
       }
@@ -98,11 +121,27 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
     [deleteAllowed]
   );
 
-  useEffect(() => {
-    emitActionState(true, isAdmin && isComplete && status !== "published", isAdmin && hasTitle);
-  }, [emitActionState, isAdmin, isComplete, hasTitle, status, deleteAllowed]);
+  const readyForSubmit = isAdmin ? hasTitle : (isComplete && selectedTags.length > 0);
 
-  useEffect(() => () => emitActionState(false, false, false), [emitActionState]);
+  useEffect(() => {
+    return () => {
+      emitActionState(false, false, false, isAdmin ? "Publish" : "Submit");
+    };
+  }, [emitActionState, isAdmin]);
+
+  useEffect(() => {
+    emitActionState(true, readyForSubmit, isAdmin && hasTitle, isAdmin ? "Publish" : "Submit");
+  }, [emitActionState, isAdmin, hasTitle, readyForSubmit, deleteAllowed]);
+
+  useEffect(() => {
+    const onRequest = () => {
+      emitActionState(true, readyForSubmit, isAdmin && hasTitle, isAdmin ? "Publish" : "Submit");
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('voidwrite:request-actions-state', onRequest);
+      return () => window.removeEventListener('voidwrite:request-actions-state', onRequest);
+    }
+  }, [emitActionState, hasTitle, isAdmin, readyForSubmit]);
 
   const loadTeam = useCallback(async () => {
     if (teamLoading) return;
@@ -166,22 +205,58 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
 
   const removeCover = () => setCoverImageUrl("");
 
-  const onSave = useCallback(async () => {
+  const onSave = useCallback(async (): Promise<number | null> => {
     if (!hasTitle) {
-      toast.error("Add a title before saving.", { position: "bottom-center" });
-      return;
+      toast.error('Add a title before saving.', { position: 'bottom-center' });
+      return null;
     }
-    if (saving) return;
+    if (!hasContent) {
+      toast.error('Fill in content before saving.', { position: 'bottom-center' });
+      return null;
+    }
+    if (!isAdmin && selectedTags.length === 0) {
+      toast.error('Select at least one tag before saving.', { position: 'bottom-center' });
+      return null;
+    }
+    if (saving) return postId ?? null;
     setSaving(true);
     try {
       const nextSlug = slug.trim() || slugify(title);
       if (!nextSlug) {
-        toast.error("Provide a valid slug.", { position: "bottom-center" });
-        return;
+        toast.error('Provide a valid slug.', { position: 'bottom-center' });
+        return null;
       }
-      const res = await fetch(`/api/posts/${initial.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+
+      if (!postId) {
+        const res = await fetch('/api/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            slug: nextSlug,
+            excerpt,
+            content,
+            status: 'draft',
+            coverImageUrl,
+            seoKeywords: seoKeywords.trim() ? seoKeywords.trim() : null,
+            tags: selectedTags,
+          }),
+        });
+        if (!res.ok) {
+          const message = await res.text().catch(() => 'Failed to save');
+          throw new Error(message || 'Failed to save');
+        }
+        const created = await res.json();
+        setPostId(created.id);
+        setSlug(created.slug || nextSlug);
+        toast.success('Draft saved. Continue editing or submit when ready.', { position: 'bottom-center', duration: 4000 });
+        router.replace(`/studio/posts/${created.id}`);
+        return created.id as number;
+      }
+
+      const res = await fetch(`/api/posts/${postId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
           slug: nextSlug,
@@ -189,68 +264,89 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
           content,
           coverImageUrl,
           seoKeywords: seoKeywords.trim() ? seoKeywords.trim() : null,
+          tags: selectedTags,
         }),
       });
       if (!res.ok) {
-        const message = await res.text().catch(() => "Failed to save");
-        throw new Error(message || "Failed to save");
+        const message = await res.text().catch(() => 'Failed to save');
+        throw new Error(message || 'Failed to save');
       }
       if (isAdmin && noteDraft.trim()) {
-        const noteRes = await fetch(`/api/posts/${initial.id}/notes`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const noteRes = await fetch(`/api/posts/${postId}/notes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ note: noteDraft.trim() }),
         });
         if (noteRes.ok) {
           const created = await noteRes.json();
           setNotes((prev) => [created, ...prev]);
-          setNoteDraft("");
+          setNoteDraft('');
         } else {
           const msg = await noteRes.text();
-          toast.error(msg || "Failed to save note", { position: "bottom-center" });
+          toast.error(msg || 'Failed to save note', { position: 'bottom-center' });
         }
       }
       setSlug(nextSlug);
-      toast.success("Post saved", { position: "bottom-center" });
+      toast.success('Post saved', { position: 'bottom-center' });
       router.refresh();
+      return postId;
     } catch (err: any) {
-      toast.error(err?.message || "Failed to save", { position: "bottom-center" });
+      toast.error(err?.message || 'Failed to save', { position: 'bottom-center' });
+      return null;
     } finally {
       setSaving(false);
     }
-  }, [content, coverImageUrl, excerpt, hasTitle, initial.id, isAdmin, noteDraft, router, saving, seoKeywords, slug, slugify, title]);
+  }, [hasTitle, hasContent, selectedTags, saving, slug, slugify, title, excerpt, content, coverImageUrl, seoKeywords, postId, isAdmin, noteDraft, router]);
 
   const onPublish = useCallback(async () => {
-    if (!isAdmin || publishing) return;
-    if (!isComplete) {
-      toast.error("Fill in title and content before publishing.", { position: "bottom-center" });
-      return;
-    }
+    if (publishing) return;
     setPublishing(true);
     try {
-      const res = await fetch(`/api/posts/${initial.id}/publish`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to publish");
-      toast.success("Post published", { position: "bottom-center" });
-      setStatus("published");
+      let id = postId;
+      if (!id) {
+        id = await onSave();
+      }
+      if (!id) {
+        return;
+      }
+
+      if (!isAdmin) {
+        const res = await fetch(`/api/posts/${id}/submit`, { method: 'POST' });
+        if (!res.ok) throw new Error('Failed to submit');
+        toast.success('Post submitted for review.', { position: 'bottom-center' });
+        setStatus('submitted');
+        router.refresh();
+        return;
+      }
+
+      if (!isComplete) {
+        toast.error('Fill in title and content before publishing.', { position: 'bottom-center' });
+        return;
+      }
+
+      const res = await fetch(`/api/posts/${id}/publish`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to publish');
+      toast.success('Post published', { position: 'bottom-center' });
+      setStatus('published');
       router.refresh();
     } catch (err: any) {
-      toast.error(err?.message || "Failed to publish", { position: "bottom-center" });
+      toast.error(err?.message || (isAdmin ? 'Failed to publish' : 'Failed to submit'), { position: 'bottom-center' });
     } finally {
       setPublishing(false);
     }
-  }, [initial.id, isAdmin, isComplete, publishing, router]);
+  }, [isAdmin, isComplete, onSave, postId, publishing, router]);
 
   const onDelete = useCallback(async () => {
-    if (!deleteAllowed) return;
+    if (!deleteAllowed || !postId) return;
     if (!confirm("Delete this post?")) return;
-    const res = await fetch(`/api/posts/${initial.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/posts/${postId}`, { method: "DELETE" });
     if (res.ok) {
       toast.success("Post deleted", { position: "bottom-center" });
       location.href = "/studio/posts";
     } else {
       toast.error("Failed to delete", { position: "bottom-center" });
     }
-  }, [deleteAllowed, initial.id]);
+  }, [deleteAllowed, postId]);
 
   const onAssignToUser = useCallback(async () => {
     if (!selectedAssignee) {
@@ -263,10 +359,17 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
     }
     setAssigning(true);
     try {
+      let id = postId;
+      if (!id) {
+        id = await onSave();
+      }
+      if (!id) {
+        throw new Error('Save the draft before assigning.');
+      }
       const payload: Record<string, any> = { assignedTo: selectedAssignee };
       const note = assignNote.trim();
       if (note) payload.note = note;
-      const res = await fetch(`/api/posts/${initial.id}/assign`, {
+      const res = await fetch(`/api/posts/${id}/assign`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -287,7 +390,7 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
     } finally {
       setAssigning(false);
     }
-  }, [assignNote, hasTitle, initial.id, router, selectedAssignee, teamMembers]);
+  }, [assignNote, hasTitle, onSave, postId, router, selectedAssignee, teamMembers]);
 
   useEffect(() => {
     const handleSave = () => {
@@ -334,11 +437,15 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
     <div className="space-y-6 px-4 sm:px-6 lg:px-10 max-w-4xl mx-auto">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold">Edit Post</h1>
-          <p className="mt-1 text-xs text-muted-foreground break-all">Slug: {slug || "—"}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Assigned to: {currentAssigneeName || "Unassigned"}
-          </p>
+          <h1 className="text-2xl font-semibold">{heading}</h1>
+          {(slug || isAdmin) && (
+            <p className="mt-1 text-xs text-muted-foreground break-all">Slug: {slug || "—"}</p>
+          )}
+          {postId && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Assigned to: {currentAssigneeName || "Unassigned"}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 text-xs">
           <span className="px-2 py-1 rounded border capitalize">Status: {status}</span>
@@ -356,16 +463,18 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
             aria-label="Post title"
           />
         </div>
-        <div>
-          <label className="block text-sm mb-1">Slug</label>
-          <input
-            className="w-full border rounded px-3 py-2"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="post-slug"
-            aria-label="Post slug"
-          />
-        </div>
+        {isAdmin && (
+          <div>
+            <label className="block text-sm mb-1">Slug</label>
+            <input
+              className="w-full border rounded px-3 py-2"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="post-slug"
+              aria-label="Post slug"
+            />
+          </div>
+        )}
         <div>
           <label className="block text-sm mb-1">Excerpt</label>
           <input
@@ -386,6 +495,60 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
             aria-label="SEO keywords"
           />
           <p className="mt-1 text-xs text-muted-foreground">Separate keywords with commas. Used in meta tags when the post is published.</p>
+        </div>
+        <div className="space-y-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <label className="block text-sm font-medium">Tags</label>
+              <p className="text-xs text-muted-foreground">Select at least one tag for this post.</p>
+            </div>
+            <input
+              className="w-full rounded border px-3 py-2 text-sm sm:w-56"
+              placeholder="Search tags"
+              value={tagSearch}
+              onChange={(e) => setTagSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {selectedTags.length > 0 ? (
+              selectedTags.map((slugValue) => {
+                const tag = tags.find((t) => t.slug === slugValue);
+                return (
+                  <button
+                    key={slugValue}
+                    type="button"
+                    onClick={() => toggleTag(slugValue)}
+                    className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+                  >
+                    {tag?.name || slugValue}
+                    <span aria-hidden>×</span>
+                  </button>
+                );
+              })
+            ) : (
+              <span className="text-xs text-muted-foreground">No tags selected yet.</span>
+            )}
+          </div>
+          <div className="max-h-40 overflow-y-auto rounded border bg-muted/5 p-2">
+            {filteredTagOptions.length === 0 && <div className="text-xs text-muted-foreground">No tags match your search.</div>}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {filteredTagOptions.map((tag) => {
+                const active = selectedTags.includes(tag.slug);
+                return (
+                  <button
+                    key={tag.slug}
+                    type="button"
+                    onClick={() => toggleTag(tag.slug)}
+                    className={`rounded border px-3 py-1 text-sm transition ${
+                      active ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-muted'
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
         <div>
           <label className="block text-sm mb-1">Cover image</label>
@@ -419,37 +582,45 @@ export default function PostEditor({ initial, role, uid, notes: initialNotes }: 
         </div>
       </div>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold">Notes</h2>
-        {existingNoteList ? (
-          <ul className="space-y-3">
-            {notes.map((note) => (
-              <li key={note.id} className="rounded border px-3 py-2 text-sm">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{note.authorName}</span>
-                  <span>{new Date(note.createdAt).toLocaleString()}</span>
-                </div>
-                <p className="mt-1 whitespace-pre-wrap">{note.note}</p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-muted-foreground">No notes yet.</p>
-        )}
-        {isAdmin && (
-          <div>
-            <label className="block text-sm mb-1">Add note</label>
-            <textarea
-              className="w-full border rounded px-3 py-2 text-sm"
-              rows={4}
-              value={noteDraft}
-              onChange={(e) => setNoteDraft(e.target.value)}
-              placeholder="Share feedback with the author"
-            />
-            <p className="mt-1 text-xs text-muted-foreground">Notes are saved when you click Save.</p>
-          </div>
-        )}
-      </section>
+      {isAdmin && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold">Notes</h2>
+          {postId ? (
+            <>
+              {existingNoteList ? (
+                <ul className="space-y-3">
+                  {notes.map((note) => (
+                    <li key={note.id} className="rounded border px-3 py-2 text-sm">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{note.authorName}</span>
+                        <span>{new Date(note.createdAt).toLocaleString()}</span>
+                      </div>
+                      <p className="mt-1 whitespace-pre-wrap">{note.note}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">No notes yet.</p>
+              )}
+              <div>
+                <label className="block text-sm mb-1">Add note</label>
+                <textarea
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  rows={4}
+                  value={noteDraft}
+                  onChange={(e) => setNoteDraft(e.target.value)}
+                  placeholder="Share feedback with the author"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">Notes are saved when you click Save.</p>
+              </div>
+            </>
+          ) : (
+            <div className="rounded border px-3 py-2 text-sm text-muted-foreground">
+              Save the draft first to add administrative notes.
+            </div>
+          )}
+        </section>
+      )}
 
       {previewOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-3 py-6 md:px-6 md:py-10">
