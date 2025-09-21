@@ -150,8 +150,11 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
     toast.success(message, { position: 'bottom-center', duration: 3500 });
   };
 
-const bufferToBase64 = (buffer: ArrayBuffer) => {
-  const uintArray = new Uint8Array(buffer);
+const bufferToBase64 = (input: ArrayBuffer | Uint8Array | string) => {
+  if (typeof input === 'string') {
+    return input;
+  }
+  const uintArray = input instanceof Uint8Array ? input : new Uint8Array(input);
   let binary = '';
   for (let i = 0; i < uintArray.length; i += 1) {
     binary += String.fromCharCode(uintArray[i]);
