@@ -1,9 +1,13 @@
 "use client";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { startRegistration } from "@simplewebauthn/browser";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 
 type Passkey = { credentialID: string; counter: number };
 
@@ -18,6 +22,25 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const [social, setSocial] = useState<string>("");
+  const router = useRouter();
+  const list = passkeys || [];
+  const [passkeyLabels, setPasskeyLabels] = useState<Record<string, string>>({});
+  const [passkeyDialogOpen, setPasskeyDialogOpen] = useState(false);
+  const [passkeyDialogMode, setPasskeyDialogMode] = useState<"register" | "edit" | "delete" | null>(null);
+  const [activeCredentialId, setActiveCredentialId] = useState<string | null>(null);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordStatus, setPasswordStatus] = useState<"idle" | "verifying" | "verified" | "error">("idle");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [registerPhase, setRegisterPhase] = useState<'password' | 'waiting'>('password');
+  const [webauthnError, setWebauthnError] = useState<string | null>(null);
+  const [passkeyNameInput, setPasskeyNameInput] = useState("");
+  const [deleteProcessing, setDeleteProcessing] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const pendingEditIdRef = useRef<string | null>(null);
+  const namingNewPasskeyRef = useRef(false);
+  const previousPasskeyIdsRef = useRef<Set<string>>(new Set(list.map((item) => item.credentialID)));
+  const newPasskeyToastShownRef = useRef(false);
 
   useEffect(() => {
     (async () => {
@@ -37,6 +60,44 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
       } catch {}
     })();
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const labels: Record<string, string> = {};
+    (passkeys || []).forEach((item) => {
+      const stored = localStorage.getItem(`pk_${item.credentialID}`);
+      if (stored) labels[item.credentialID] = stored;
+    });
+    const prevIds = previousPasskeyIdsRef.current;
+    const currentIds = new Set((passkeys || []).map((item) => item.credentialID));
+    const newIds: string[] = [];
+    currentIds.forEach((id) => {
+      if (!prevIds.has(id)) newIds.push(id);
+    });
+    if (newIds.length > 0) {
+      pendingEditIdRef.current = newIds[0];
+      namingNewPasskeyRef.current = true;
+      newPasskeyToastShownRef.current = false;
+    }
+    previousPasskeyIdsRef.current = currentIds;
+    setPasskeyLabels(labels);
+
+    const targetId = pendingEditIdRef.current;
+    if (targetId && currentIds.has(targetId) && !passkeyDialogOpen) {
+      if (namingNewPasskeyRef.current && !newPasskeyToastShownRef.current) {
+        toast.success('Passkey registered. Give it a name to recognize it later.', {
+          position: 'bottom-center',
+          duration: 3500,
+        });
+        newPasskeyToastShownRef.current = true;
+      }
+      resetPasskeyDialog();
+      setPasskeyDialogMode('edit');
+      setActiveCredentialId(targetId);
+      setPasskeyNameInput(namingNewPasskeyRef.current ? '' : labels[targetId] || '');
+      setPasskeyDialogOpen(true);
+    }
+  }, [passkeys, passkeyDialogOpen]);
 
   const clickUpload = () => fileRef.current?.click();
   useEffect(() => {
@@ -89,12 +150,285 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
     toast.success(message, { position: 'bottom-center', duration: 3500 });
   };
 
+const bufferToBase64 = (buffer: ArrayBuffer) => {
+  const uintArray = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < uintArray.length; i += 1) {
+    binary += String.fromCharCode(uintArray[i]);
+  }
+  return btoa(binary);
+};
+const getStoredPasskeyName = (id: string) => {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem(`pk_${id}`) || '';
+};
+
+const storePasskeyLabel = (
+  credentialId: string,
+  label?: string,
+  update?: Dispatch<SetStateAction<Record<string, string>>>,
+) => {
+  if (typeof window !== 'undefined') {
+    try {
+      if (label && label.length > 0) {
+        localStorage.setItem(`pk_${credentialId}`, label);
+      } else {
+        localStorage.removeItem(`pk_${credentialId}`);
+      }
+    } catch {
+      /* ignore storage failures */
+    }
+  }
+  if (update) {
+    update((prev) => {
+      const next = { ...prev };
+      if (label && label.length > 0) {
+        next[credentialId] = label;
+      } else {
+        delete next[credentialId];
+      }
+      return next;
+    });
+  }
+};
+
+  const resetPasskeyDialog = () => {
+    setPasswordInput('');
+    setPasswordStatus('idle');
+    setPasswordError(null);
+    setRegisterPhase('password');
+    setWebauthnError(null);
+    setPasskeyNameInput('');
+    setActiveCredentialId(null);
+    setDeleteProcessing(false);
+    setShowRegisterPassword(false);
+    setShowDeletePassword(false);
+  };
+
+  const closePasskeyDialog = () => {
+    const mode = passkeyDialogMode;
+    setPasskeyDialogOpen(false);
+    setPasskeyDialogMode(null);
+    resetPasskeyDialog();
+    if (mode === 'edit') {
+      namingNewPasskeyRef.current = false;
+      pendingEditIdRef.current = null;
+    }
+  };
+
+  const openPasskeyDialog = (mode: "register" | "edit" | "delete", credentialId?: string, initialName?: string) => {
+    resetPasskeyDialog();
+    setPasskeyDialogMode(mode);
+    if (mode === 'register') {
+      setRegisterPhase('password');
+      setWebauthnError(null);
+    }
+    if (credentialId) {
+      setActiveCredentialId(credentialId);
+      if (mode !== 'register') {
+        const stored = initialName ?? getStoredPasskeyName(credentialId);
+        setPasskeyNameInput(stored);
+      }
+    }
+    setPasskeyDialogOpen(true);
+  };
+
+  const handleRegisterClick = () => {
+    if (typeof window === 'undefined' || typeof window.PublicKeyCredential === 'undefined') {
+      toast.error('Passkeys are not supported in this browser yet.', { position: 'bottom-center' });
+      return;
+    }
+    if (list.length >= 5) {
+      toast.error('You have reached the maximum number of passkeys. Delete one before adding another.', { position: 'bottom-center' });
+      return;
+    }
+    pendingEditIdRef.current = null;
+    namingNewPasskeyRef.current = false;
+    openPasskeyDialog('register');
+  };
+
+  const verifyPasswordInput = async () => {
+    setPasswordError(null);
+    const value = passwordInput.trim();
+    if (!value) {
+      setPasswordStatus('error');
+      setPasswordError('Enter your password to continue.');
+      return false;
+    }
+    setPasswordStatus('verifying');
+    try {
+      const res = await fetch('/api/account/password/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: value }),
+      });
+      if (!res.ok) {
+        const details = await res.json().catch(() => null);
+        const message = details?.error || 'Password verification failed.';
+        setPasswordStatus('error');
+        setPasswordError(message);
+        return false;
+      }
+      setPasswordStatus('verified');
+      setPasswordError(null);
+      return true;
+    } catch (error) {
+      setPasswordStatus('error');
+      setPasswordError((error as Error)?.message || 'Password verification failed.');
+      return false;
+    }
+  };
+
+  const beginPasskeyRegistration = async () => {
+    setWebauthnError(null);
+    let completed = false;
+    try {
+      const optionsRes = await fetch('/api/auth/webauthn-options/passkey?action=register', { credentials: 'include' });
+      if (!optionsRes.ok) {
+        throw new Error('Unable to get passkey options.');
+      }
+      const optionsData = await optionsRes.json();
+      if (optionsData?.action !== 'register' || !optionsData?.options) {
+        throw new Error('Received unexpected passkey registration response.');
+      }
+      const registrationResponse = await startRegistration(optionsData.options);
+      const callbackBody = new URLSearchParams({
+        action: 'register',
+        data: JSON.stringify(registrationResponse),
+        callbackUrl: typeof window !== 'undefined' ? window.location.href : '/studio/settings',
+      });
+      const callbackRes = await fetch('/api/auth/callback/passkey?action=register', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: callbackBody,
+        redirect: 'manual',
+      });
+      const registrationSucceeded = callbackRes.ok || callbackRes.type === 'opaqueredirect';
+      if (!registrationSucceeded) {
+        let errorMessage = 'Passkey registration failed on the server.';
+        try {
+          const errJson = await callbackRes.json();
+          if (errJson?.error) errorMessage = errJson.error;
+        } catch {
+          /* ignore JSON parse issues */
+        }
+        throw new Error(errorMessage);
+      }
+      const credentialId = bufferToBase64(registrationResponse.rawId);
+      pendingEditIdRef.current = credentialId;
+      namingNewPasskeyRef.current = true;
+      setPasskeyDialogOpen(false);
+      setPasskeyDialogMode(null);
+      resetPasskeyDialog();
+      completed = true;
+      try {
+        router.refresh();
+      } catch {
+        /* ignore refresh errors */
+      }
+    } catch (err) {
+      const errorMessage = err instanceof DOMException
+        ? (err.name === 'NotAllowedError' || err.name === 'AbortError'
+          ? 'Passkey registration was cancelled. Try again when you are ready.'
+          : err.message)
+        : (err as Error)?.message || 'Failed to complete passkey registration.';
+      setWebauthnError(errorMessage);
+      setRegisterPhase('waiting');
+      setPasswordStatus('verified');
+    } finally {
+      if (completed) {
+        setRegisterPhase('password');
+        setPasswordStatus('idle');
+      }
+    }
+  };
+
+  const handleVerifyPasswordForRegistration = async () => {
+    if (registerPhase === 'waiting') {
+      setWebauthnError(null);
+      await beginPasskeyRegistration();
+      return;
+    }
+    if (passwordStatus === 'verifying') return;
+    const valid = await verifyPasswordInput();
+    if (!valid) return;
+    setRegisterPhase('waiting');
+    await beginPasskeyRegistration();
+  };
+
+  const handleEditPasskey = (credentialId: string) => {
+    pendingEditIdRef.current = null;
+    namingNewPasskeyRef.current = false;
+    openPasskeyDialog('edit', credentialId);
+  };
+
+  const handleSaveEditedPasskey = () => {
+    if (!activeCredentialId) return;
+    const label = passkeyNameInput.trim();
+    storePasskeyLabel(activeCredentialId, label || undefined, setPasskeyLabels);
+    if (namingNewPasskeyRef.current) {
+      toast.success(label ? `Passkey "${label}" has been registered.` : 'Passkey has been registered.', {
+        position: 'bottom-center',
+        duration: 4000,
+      });
+      newPasskeyToastShownRef.current = true;
+    } else {
+      toast.success(label ? 'Passkey name updated.' : 'Passkey name cleared.', {
+        position: 'bottom-center',
+        duration: 2500,
+      });
+    }
+    namingNewPasskeyRef.current = false;
+    pendingEditIdRef.current = null;
+    closePasskeyDialog();
+  };
+
+  const handleDeletePasskey = (credentialId: string) => {
+    openPasskeyDialog('delete', credentialId);
+  };
+
+  const handleConfirmDeletePasskey = async () => {
+    if (!activeCredentialId) return;
+    setDeleteProcessing(true);
+    const valid = await verifyPasswordInput();
+    if (!valid) {
+      setDeleteProcessing(false);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/account/passkeys?credentialID=${encodeURIComponent(activeCredentialId)}&_method=DELETE`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => null);
+        throw new Error(text || 'Failed to delete passkey.');
+      }
+      storePasskeyLabel(activeCredentialId, undefined, setPasskeyLabels);
+      pendingEditIdRef.current = null;
+      namingNewPasskeyRef.current = false;
+    toast.success('Passkey removed.', { position: 'bottom-center', duration: 3000 });
+    closePasskeyDialog();
+    try {
+      router.refresh();
+    } catch {
+        /* ignore refresh errors */
+      }
+    } catch (error) {
+      setPasswordStatus('error');
+      setPasswordError((error as Error)?.message || 'Failed to delete passkey.');
+      setDeleteProcessing(false);
+    } finally {
+      setDeleteProcessing(false);
+    }
+  };
+
   const { theme, setTheme } = useTheme();
   const setCookieTheme = (val: 'light'|'dark'|'system') => { try { document.cookie = `vw_theme=${val}; Max-Age=${60*60*24*365}; Path=/`; } catch {} };
   const [themeMounted, setThemeMounted] = useState(false);
   useEffect(() => setThemeMounted(true), []);
   const currentEmail = account?.email || "unknown@example.com";
-  const list = passkeys || [];
 
   return (
     <div className="space-y-10">
@@ -151,21 +485,211 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
         <div className="space-y-2">
           <div className="text-sm font-medium">Passkeys</div>
           <p className="text-sm text-muted-foreground">You can register up to 5. You currently have {list.length}.</p>
-          <Link href="/api/auth/signin?provider=passkey" className="px-3 py-1 border rounded text-sm inline-block">Register new passkey</Link>
+          <Button type="button" variant="outline" className="text-sm" onClick={handleRegisterClick}>
+            Register new passkey
+          </Button>
           <div className="divide-y rounded border mt-2">
             {list.length === 0 && <div className="p-3 text-sm text-muted-foreground">No passkeys added yet.</div>}
-            {list.map((a) => (
-              <div key={a.credentialID} className="flex items-center gap-2 p-3">
-                <input className="flex-1 border rounded px-2 py-1 text-sm" defaultValue={(typeof window !== 'undefined' && localStorage.getItem('pk_'+a.credentialID)) || ''} placeholder="Passkey name (device/browser)" onBlur={(e) => { try { localStorage.setItem('pk_'+a.credentialID, e.currentTarget.value || ''); } catch {} }} />
-                <form action={`/api/account/passkeys?credentialID=${encodeURIComponent(a.credentialID)}`} method="post">
-                  <input type="hidden" name="_method" value="DELETE" />
-                  <button className="text-red-600 text-sm">Remove</button>
-                </form>
-              </div>
-            ))}
+            {list.map((a) => {
+              const label = passkeyLabels[a.credentialID] || 'Unnamed passkey';
+              return (
+                <div key={a.credentialID} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">{label}</div>
+                    <div className="text-xs text-muted-foreground break-all">ID: {a.credentialID}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => handleEditPasskey(a.credentialID)}>
+                      Rename
+                    </Button>
+                    <Button type="button" variant="destructive" size="sm" onClick={() => handleDeletePasskey(a.credentialID)}>
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
+      <Dialog open={passkeyDialogOpen} onOpenChange={(open) => { if (!open) closePasskeyDialog(); }}>
+        <DialogContent className="sm:max-w-md">
+          {passkeyDialogMode === 'register' && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Register a new passkey</DialogTitle>
+                <DialogDescription>Secure your account with a trusted device credential.</DialogDescription>
+              </DialogHeader>
+              {registerPhase === 'password' ? (
+                <>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label htmlFor="passkey-password" className="text-sm font-medium">Account password</label>
+                      <div className="relative">
+                        <input
+                          id="passkey-password"
+                          type={showRegisterPassword ? 'text' : 'password'}
+                          className="w-full rounded-md border px-3 py-2 pr-10 text-sm"
+                          value={passwordInput}
+                          onChange={(e) => {
+                            setPasswordInput(e.target.value);
+                            if (passwordStatus !== 'idle') {
+                              setPasswordStatus('idle');
+                              setPasswordError(null);
+                            }
+                            if (webauthnError) setWebauthnError(null);
+                          }}
+                          autoComplete="current-password"
+                          disabled={passwordStatus === 'verifying'}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleVerifyPasswordForRegistration();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowRegisterPassword((prev) => !prev)}
+                          className="absolute inset-y-0 right-2 flex items-center text-muted-foreground hover:text-foreground"
+                          aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      {passwordError && <p className="text-xs text-destructive">{passwordError}</p>}
+                      {webauthnError && <p className="text-xs text-destructive">{webauthnError}</p>}
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="ghost" onClick={closePasskeyDialog}>
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleVerifyPasswordForRegistration}
+                      disabled={passwordStatus === 'verifying'}
+                    >
+                      {passwordStatus === 'verifying' ? 'Verifying…' : 'Verify password'}
+                    </Button>
+                  </DialogFooter>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    <div className="rounded-md border border-muted bg-muted/30 px-3 py-4 text-sm text-muted-foreground">
+                      Follow the browser prompt in your browser to finish creating the passkey.
+                    </div>
+                    {webauthnError && (
+                      <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                        {webauthnError}
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="ghost" onClick={closePasskeyDialog}>
+                      Cancel
+                    </Button>
+                    <Button type="button" onClick={handleVerifyPasswordForRegistration}>
+                      Retry
+                    </Button>
+                  </DialogFooter>
+                </>
+              )}
+            </>
+          )}
+          {passkeyDialogMode === 'edit' && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Rename passkey</DialogTitle>
+                <DialogDescription>Update how this device is labelled in your account.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <label htmlFor="edit-passkey-name" className="text-sm font-medium">Passkey name</label>
+                  <input
+                    id="edit-passkey-name"
+                    className="w-full rounded-md border px-3 py-2 text-sm"
+                    value={passkeyNameInput}
+                    onChange={(e) => setPasskeyNameInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSaveEditedPasskey();
+                      }
+                    }}
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={closePasskeyDialog}>
+                  Cancel
+                </Button>
+                <Button type="button" onClick={handleSaveEditedPasskey}>
+                  Save
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+          {passkeyDialogMode === 'delete' && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Delete passkey</DialogTitle>
+                <DialogDescription>Please confirm your password to remove this passkey.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="text-sm font-medium text-muted-foreground">
+                  {passkeyNameInput ? `Passkey: ${passkeyNameInput}` : 'Unnamed passkey'}
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="delete-passkey-password" className="text-sm font-medium">Account password</label>
+                  <div className="relative">
+                    <input
+                      id="delete-passkey-password"
+                      type={showDeletePassword ? 'text' : 'password'}
+                      className="w-full rounded-md border px-3 py-2 pr-10 text-sm"
+                      value={passwordInput}
+                      onChange={(e) => {
+                        setPasswordInput(e.target.value);
+                        if (passwordStatus !== 'idle') {
+                          setPasswordStatus('idle');
+                          setPasswordError(null);
+                        }
+                      }}
+                      autoComplete="current-password"
+                      disabled={deleteProcessing}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleConfirmDeletePasskey();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowDeletePassword((prev) => !prev)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={showDeletePassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showDeletePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {passwordError && <p className="text-xs text-destructive">{passwordError}</p>}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={closePasskeyDialog} disabled={deleteProcessing}>
+                  Cancel
+                </Button>
+                <Button type="button" variant="destructive" onClick={handleConfirmDeletePasskey} disabled={deleteProcessing}>
+                  {deleteProcessing ? 'Removing…' : 'Delete'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
       <hr className="my-8 border-t" />
 
       {/* Theme (last) */}

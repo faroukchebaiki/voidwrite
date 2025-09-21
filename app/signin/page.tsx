@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn as signInCredentials } from "next-auth/react";
+import { signIn as signInPasskey } from "next-auth/webauthn";
 
 import {
   Card,
@@ -20,18 +21,32 @@ export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     try {
-      await signIn("credentials", {
+      await signInCredentials("credentials", {
         email,
         password,
         callbackUrl: "/studio",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const onPasskey = async () => {
+    setPasskeyError(null);
+    setPasskeyLoading(true);
+    try {
+      await signInPasskey("passkey", { callbackUrl: "/studio" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to start passkey sign-in.";
+      setPasskeyError(message);
+      setPasskeyLoading(false);
     }
   };
 
@@ -100,10 +115,14 @@ export default function SignInPage() {
               type="button"
               variant="outline"
               className="w-full"
-              onClick={() => signIn("passkey", { callbackUrl: "/studio" })}
+              onClick={onPasskey}
+              disabled={passkeyLoading}
             >
-              Use a passkey
+              {passkeyLoading ? "Waiting for passkey…" : "Use a passkey"}
             </Button>
+            {passkeyError && (
+              <p className="mt-2 text-center text-sm text-destructive">{passkeyError}</p>
+            )}
           </CardContent>
           <CardFooter className="flex flex-col gap-2 text-sm text-muted-foreground">
             <p>
