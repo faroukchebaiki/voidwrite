@@ -542,7 +542,7 @@ const persistPasskeyLabel = async (credentialId: string, label?: string) => {
         </div>
       </section>
       <Dialog open={passkeyDialogOpen} onOpenChange={(open) => { if (!open) closePasskeyDialog(); }}>
-        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-sm overflow-y-auto rounded-lg p-5 sm:max-w-md sm:p-6">
+        <DialogContent className="w-full max-w-sm overflow-x-hidden overflow-y-auto rounded-lg p-5 sm:max-w-md sm:p-6">
           {passkeyDialogMode === 'register' && (
             <>
               <DialogHeader>
