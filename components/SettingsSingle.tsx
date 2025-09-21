@@ -81,7 +81,12 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
       return;
     }
     const data = await res.json().catch(() => null) as any;
-    toast.success(data?.message || 'Profile saved', { position: 'bottom-center' });
+    if (!data?.success) {
+      toast.error('Failed to confirm profile save', { position: 'bottom-center' });
+      return;
+    }
+    const message = data?.message || 'Profile has been saved';
+    toast.success(message, { position: 'bottom-center', duration: 3500 });
   };
 
   const { theme, setTheme } = useTheme();

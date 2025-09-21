@@ -2,6 +2,7 @@ import React from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SiteHeader } from '@/components/site-header';
+import { Toaster } from '@/components/ui/sonner';
 import { auth } from '@/auth-app';
 
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +20,7 @@ export default async function StudioLayout({ children }: { children: React.React
           {children}
         </div>
       </SidebarInset>
+      <Toaster position="bottom-center" richColors closeButton />
     </SidebarProvider>
   );
 }
