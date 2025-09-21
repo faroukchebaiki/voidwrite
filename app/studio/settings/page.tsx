@@ -34,9 +34,9 @@ export default async function StudioSettings() {
         .where(eq(authenticators.userId, uid))
     : [];
   return (
-    <main className="space-y-3">
+    <main className="space-y-3 overflow-x-hidden">
       <h1 className="text-2xl font-semibold">Settings</h1>
-      <div className="mx-auto w-full max-w-3xl">
+      <div className="mx-auto w-full max-w-3xl overflow-x-hidden">
         {role === 'admin' && (
           <section className="mb-10 space-y-4 rounded-lg border bg-card p-6">
             <div className="space-y-2">

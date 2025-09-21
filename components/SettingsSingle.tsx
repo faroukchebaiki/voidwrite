@@ -542,7 +542,7 @@ const persistPasskeyLabel = async (credentialId: string, label?: string) => {
         </div>
       </section>
       <Dialog open={passkeyDialogOpen} onOpenChange={(open) => { if (!open) closePasskeyDialog(); }}>
-        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-sm overflow-y-auto p-5 sm:max-w-md sm:p-6">
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-sm overflow-y-auto rounded-lg p-5 sm:max-w-md sm:p-6">
           {passkeyDialogMode === 'register' && (
             <>
               <DialogHeader>
@@ -552,7 +552,7 @@ const persistPasskeyLabel = async (credentialId: string, label?: string) => {
               {registerPhase === 'password' ? (
                 <form
                   className="space-y-4"
-                  autoComplete="off"
+                  autoComplete="current-password"
                   onSubmit={(e) => {
                     e.preventDefault();
                     handleVerifyPasswordForRegistration();
@@ -673,18 +673,19 @@ const persistPasskeyLabel = async (credentialId: string, label?: string) => {
                 <div className="space-y-2">
                   <label htmlFor="delete-passkey-password" className="text-sm font-medium">Account password</label>
                   <form
-                    className="relative"
-                    autoComplete="off"
+                    className="space-y-4"
+                    autoComplete="current-password"
                     onSubmit={(e) => {
                       e.preventDefault();
                       handleConfirmDeletePasskey();
                     }}
                   >
-                    <input
-                      id="delete-passkey-password"
-                      name="current-password"
-                      type={showDeletePassword ? 'text' : 'password'}
-                      className="w-full rounded-md border px-3 py-2 pr-10 text-sm"
+                    <div className="relative">
+                      <input
+                        id="delete-passkey-password"
+                        name="current-password"
+                        type={showDeletePassword ? 'text' : 'password'}
+                        className="w-full rounded-md border px-3 py-2 pr-10 text-sm"
                       value={passwordInput}
                       onChange={(e) => {
                         setPasswordInput(e.target.value);
@@ -696,17 +697,18 @@ const persistPasskeyLabel = async (credentialId: string, label?: string) => {
                       autoComplete="current-password"
                       autoCapitalize="none"
                       autoCorrect="off"
-                      spellCheck={false}
-                      disabled={deleteProcessing}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowDeletePassword((prev) => !prev)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      aria-label={showDeletePassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showDeletePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
+                        spellCheck={false}
+                        disabled={deleteProcessing}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowDeletePassword((prev) => !prev)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label={showDeletePassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showDeletePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                     <DialogFooter className="mt-4">
                       <Button type="button" variant="ghost" onClick={closePasskeyDialog} disabled={deleteProcessing}>
                         Cancel
