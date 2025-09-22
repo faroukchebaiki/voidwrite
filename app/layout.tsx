@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Playfair_Display, Inter_Tight, UnifrakturCook } from 'next/font/google';
+import { Roboto_Mono, Kdam_Thmor_Pro } from 'next/font/google';
 import './globals.css';
 import '../styles/theme.css';
 import { ThemeProvider } from 'next-themes';
@@ -12,9 +12,8 @@ import { tags } from '@/db/schema';
 import { sql } from 'drizzle-orm';
 import { siteConfig } from '@/site';
 
-const headingFont = Playfair_Display({ subsets: ['latin'], variable: '--font-heading' });
-const bodyFont = Inter_Tight({ subsets: ['latin'], variable: '--font-sans' });
-const logoFont = UnifrakturCook({ subsets: ['latin'], variable: '--font-logo', weight: '700' });
+const monoFont = Roboto_Mono({ subsets: ['latin'], variable: '--font-mono', weight: ['400', '500', '600', '700'], display: 'swap' });
+const logoFont = Kdam_Thmor_Pro({ subsets: ['latin'], variable: '--font-logo', weight: '400', display: 'swap' });
 
 export const metadata: Metadata = {
   title: siteConfig.title,
@@ -34,9 +33,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${headingFont.variable} ${bodyFont.variable} ${logoFont.variable} ${initialClass}`.trim()}
+      className={`${monoFont.variable} ${logoFont.variable} ${initialClass}`.trim()}
     >
-      <body className="font-sans antialiased">
+      <body className="antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Header
             siteTitle={siteConfig.title}

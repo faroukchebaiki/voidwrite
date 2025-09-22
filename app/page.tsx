@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/site";
+import { summarizeExcerpt } from "@/lib/text";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 30;
@@ -71,6 +72,7 @@ export default async function Home({ searchParams }: { searchParams?: Promise<Re
               }
               return '/image.png';
             })();
+            const excerptPreview = summarizeExcerpt(p.excerpt);
 
             return (
               <Card
@@ -98,13 +100,13 @@ export default async function Home({ searchParams }: { searchParams?: Promise<Re
                       </div>
                       <Link
                         href={`/posts/${p.slug}`}
-                        className="font-heading text-2xl leading-tight transition-colors duration-200 group-hover:text-primary sm:text-3xl"
+                        className="font-heading text-xl leading-tight tracking-tight transition-colors duration-200 group-hover:text-primary sm:text-2xl"
                       >
                         {p.title}
                       </Link>
-                      {p.excerpt ? (
-                        <p className="text-base text-muted-foreground/90 sm:text-lg">
-                          {p.excerpt}
+                      {excerptPreview ? (
+                        <p className="text-sm leading-relaxed text-muted-foreground/90 sm:text-base">
+                          {excerptPreview}
                         </p>
                       ) : null}
                     </div>

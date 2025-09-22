@@ -28,6 +28,26 @@
   --ring: 240 10% 3.9%;
   --radius: 0.5rem;
 
+  /* typography scale */
+  --fs-xs: clamp(0.78rem, 0.74rem + 0.2vw, 0.85rem);
+  --fs-sm: clamp(0.9rem, 0.85rem + 0.25vw, 1rem);
+  --fs-base: clamp(1.0625rem, 1rem + 0.4vw, 1.22rem);
+  --fs-lg: clamp(1.25rem, 1.17rem + 0.45vw, 1.5rem);
+  --fs-xl: clamp(1.5rem, 1.38rem + 0.65vw, 1.9rem);
+  --fs-2xl: clamp(1.875rem, 1.7rem + 0.85vw, 2.6rem);
+  --fs-3xl: clamp(2.25rem, 2rem + 1.1vw, 3.1rem);
+  --fs-4xl: clamp(2.75rem, 2.3rem + 1.45vw, 3.8rem);
+
+  --lh-tight: 1.18;
+  --lh-snug: 1.32;
+  --lh-normal: 1.46;
+  --lh-relaxed: 1.6;
+  --lh-loose: 1.72;
+
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.08em;
+
   /* charts */
   --chart-1: 12 76% 61%;
   --chart-2: 173 58% 39%;
@@ -107,6 +127,27 @@
   --color-ring: hsl(var(--ring));
   --radius: var(--radius);
 
+  --font-size-xs: var(--fs-xs);
+  --font-size-sm: var(--fs-sm);
+  --font-size-base: var(--fs-base);
+  --font-size-lg: var(--fs-lg);
+  --font-size-xl: var(--fs-xl);
+  --font-size-2xl: var(--fs-2xl);
+  --font-size-3xl: var(--fs-3xl);
+  --font-size-4xl: var(--fs-4xl);
+
+  --line-height-tight: var(--lh-tight);
+  --line-height-snug: var(--lh-snug);
+  --line-height-normal: var(--lh-normal);
+  --line-height-relaxed: var(--lh-relaxed);
+  --line-height-loose: var(--lh-loose);
+
+  --letter-spacing-tight: var(--tracking-tight);
+  --letter-spacing-normal: var(--tracking-normal);
+  --letter-spacing-wide: 0.04em;
+  --letter-spacing-wider: var(--tracking-wide);
+  --letter-spacing-widest: 0.16em;
+
   /* chart colors */
   --color-chart-1: hsl(var(--chart-1));
   --color-chart-2: hsl(var(--chart-2));
@@ -130,14 +171,127 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-sans), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: var(--fs-base);
+    line-height: var(--lh-relaxed);
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-optical-sizing: auto;
   }
   h1, h2, h3, h4, h5, h6,
   .font-heading {
-    font-family: var(--font-heading), "Playfair Display", "Times New Roman", serif;
+    font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
   }
   .font-logo {
-    font-family: var(--font-logo), "UnifrakturCook", "Times New Roman", serif;
+    font-family: var(--font-logo), "Kdam Thmor Pro", "Rajdhani", sans-serif;
     letter-spacing: 0.04em;
+  }
+}
+
+@layer components {
+  .prose {
+    font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: var(--fs-base);
+    line-height: var(--lh-loose);
+    max-width: min(68ch, 100%);
+    color: hsl(var(--foreground));
+  }
+  .dark .prose {
+    color: hsl(var(--foreground));
+  }
+  .prose :where(p, li):not(:where([class~="not-prose"] *)) {
+    font-size: var(--fs-base);
+    line-height: var(--lh-loose);
+    letter-spacing: var(--tracking-normal);
+  }
+  .prose :where(p):not(:where([class~="not-prose"] *)) {
+    margin-block: 1.3em;
+  }
+  .prose :where(h1):not(:where([class~="not-prose"] *)) {
+    font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: var(--fs-3xl);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-tight);
+    margin-block-start: 1.8em;
+    margin-block-end: 0.7em;
+  }
+  .prose :where(h2):not(:where([class~="not-prose"] *)) {
+    font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: var(--fs-2xl);
+    line-height: var(--lh-snug);
+    letter-spacing: var(--tracking-tight);
+    margin-block: 1.6em 0.6em;
+  }
+  .prose :where(h3):not(:where([class~="not-prose"] *)) {
+    font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: var(--fs-xl);
+    line-height: var(--lh-snug);
+    margin-block: 1.4em 0.5em;
+  }
+  .prose :where(h4, h5, h6):not(:where([class~="not-prose"] *)) {
+    font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: var(--fs-lg);
+    line-height: var(--lh-snug);
+    margin-block: 1.2em 0.4em;
+  }
+  .prose :where(a):not(:where([class~="not-prose"] *)) {
+    color: hsl(var(--primary));
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.25em;
+  }
+  .dark .prose :where(a):not(:where([class~="not-prose"] *)) {
+    color: hsl(var(--primary));
+  }
+  .prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+    border-left: 3px solid hsl(var(--border));
+    padding-left: 1.25rem;
+    margin-block: 2em;
+    font-style: italic;
+    font-size: var(--fs-lg);
+    color: hsl(var(--muted-foreground));
+  }
+  .dark .prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+    border-left-color: hsl(var(--border));
+    color: hsl(var(--muted-foreground));
+  }
+  .prose :where(ul, ol):not(:where([class~="not-prose"] *)) {
+    padding-left: 1.25rem;
+    margin-block: 1.25em 1.5em;
+  }
+  .prose :where(li):not(:where([class~="not-prose"] *)) {
+    margin-top: 0.5em;
+  }
+  .prose :where(code):not(:where([class~="not-prose"] *)) {
+    font-size: 0.95em;
+    font-family: ui-monospace, SFMono-Regular, SFMono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background: linear-gradient(120deg, rgba(99, 102, 241, 0.16), rgba(59, 130, 246, 0.16));
+    padding: 0.2em 0.45em;
+    border-radius: 0.4rem;
+  }
+  .prose :where(pre):not(:where([class~="not-prose"] *)) {
+    font-family: ui-monospace, SFMono-Regular, SFMono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background: rgba(12, 12, 16, 0.96);
+    color: #f4f4f5;
+    padding: 1.1rem 1.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  }
+  .dark .prose :where(pre):not(:where([class~="not-prose"] *)) {
+    background: rgba(12, 12, 16, 0.92);
+  }
+  .prose :where(img):not(:where([class~="not-prose"] *)) {
+    border-radius: 0.85rem;
+    border: 1px solid hsl(var(--border));
+    margin-block: 1.75em;
+  }
+}
+
+@layer utilities {
+  .reading-width {
+    max-width: min(70ch, 100%);
   }
 }

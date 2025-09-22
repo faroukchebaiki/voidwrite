@@ -14,7 +14,7 @@ type Passkey = { credentialID: string; counter: number; label?: string | null };
 export default function SettingsSingle({ account, passkeys }: { account?: { email?: string; name?: string | null }; passkeys?: Passkey[] }) {
   // Profile state (local for now)
   const defaultAvatar = "https://github.com/shadcn.png";
-  const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [first, setFirst] = useState("");
@@ -43,22 +43,36 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
   const newPasskeyToastShownRef = useRef(false);
 
   useEffect(() => {
+    let mounted = true;
     (async () => {
+      let storedAvatar: string | null = null;
+      if (typeof window !== 'undefined') {
+        try {
+          storedAvatar = localStorage.getItem('profile_avatar_url');
+          if (storedAvatar) setAvatarUrl(storedAvatar);
+        } catch {}
+      }
       try {
-        const av = localStorage.getItem('profile_avatar_url'); if (av) setAvatarUrl(av);
         const res = await fetch('/api/profile', { cache: 'no-store' });
-        if (res.ok) {
-          const p = await res.json();
-          if (p) {
-            setFirst(p.firstName || '');
-            setLast(p.lastName || '');
-            setUsername(p.username || '');
-            setBio(p.bio || '');
-            setSocial(p.link || '');
+        if (!res.ok) return;
+        const p = await res.json();
+        if (!mounted || !p) return;
+        setFirst(p.firstName || '');
+        setLast(p.lastName || '');
+        setUsername(p.username || '');
+        setBio(p.bio || '');
+        setSocial(p.link || '');
+        if (p.avatarUrl) {
+          setAvatarUrl(p.avatarUrl);
+          if (typeof window !== 'undefined') {
+            try { localStorage.setItem('profile_avatar_url', p.avatarUrl); } catch {}
           }
+        } else if (!storedAvatar) {
+          setAvatarUrl(null);
         }
       } catch {}
     })();
+    return () => { mounted = false; };
   }, []);
 
   useEffect(() => {
@@ -124,19 +138,27 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
       if (!res.ok) throw new Error('Upload failed');
       const { url } = await res.json();
       setAvatarUrl(url);
-      try { localStorage.setItem('profile_avatar_url', url); } catch {}
+      if (typeof window !== 'undefined') {
+        try { localStorage.setItem('profile_avatar_url', url); } catch {}
+      }
       // notify sidebar avatar to update via storage event
     } catch (err) { toast.error((err as any)?.message || 'Upload error'); }
     finally { setUploading(false); if (fileRef.current) fileRef.current.value = ''; }
   };
 
   const onSaveProfile = async () => {
+    const normalizedAvatar = (() => {
+      if (!avatarUrl) return null;
+      const trimmed = avatarUrl.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    })();
     const payload = {
       firstName: first.trim() || null,
       lastName: last.trim() || null,
       username: username.trim() || null,
       bio: bio.trim() || null,
       link: social.trim() || null,
+      avatarUrl: normalizedAvatar,
     };
     const res = await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     if (!res.ok) {
@@ -151,6 +173,16 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
     }
     const message = data?.message || 'Profile has been saved';
     toast.success(message, { position: 'bottom-center', duration: 3500 });
+    if (typeof window !== 'undefined') {
+      try {
+        if (normalizedAvatar) {
+          localStorage.setItem('profile_avatar_url', normalizedAvatar);
+        } else {
+          localStorage.removeItem('profile_avatar_url');
+        }
+      } catch {}
+    }
+    try { router.refresh(); } catch {}
   };
 
 const bufferToBase64 = (input: ArrayBuffer | Uint8Array | string) => {
@@ -467,7 +499,7 @@ const persistPasskeyLabel = async (credentialId: string, label?: string) => {
           <div className="flex flex-col items-center gap-2">
             <button type="button" onClick={clickUpload} className="relative inline-block">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={avatarUrl} alt="Avatar" className="h-28 w-28 rounded-full border object-cover" />
+              <img src={avatarUrl || defaultAvatar} alt="Avatar" className="h-28 w-28 rounded-full border object-cover" />
               <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/30 text-white text-xs opacity-0 hover:opacity-100">{uploading ? 'Uploading…' : 'Change'}</span>
             </button>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />

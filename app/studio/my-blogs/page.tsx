@@ -79,10 +79,12 @@ export default async function MyBlogsPage({ searchParams }: any) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">My Posts</h1>
+        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">My Posts</h1>
       </div>
       <PostsTableClient rows={mapped} total={total} limit={limit} mine={true} draftOnly={draftOnly} sort={sort} status={statusParam} assigneeOptions={assigneeOptions} assignee={assigneeParam ?? null} />
-      {rows.length === 0 && <p className="text-sm text-gray-500">No posts found.</p>}
+      {rows.length === 0 && (
+        <p className="text-sm leading-relaxed text-muted-foreground">No posts found.</p>
+      )}
     </div>
   );
 }

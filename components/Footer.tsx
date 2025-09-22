@@ -15,10 +15,10 @@ export default function Footer() {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4">
             <Link href="/" className="font-heading text-2xl font-semibold">Voidwrite</Link>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm leading-relaxed text-muted-foreground">
               A publication for curious creatives, builders, and storytellers.
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               © {new Date().getFullYear()} Voidwrite. Crafted with Next.js.
             </p>
           </div>
@@ -75,7 +75,7 @@ export default function Footer() {
           </div>
           <div className="space-y-3">
             <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Join us</h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm leading-relaxed text-muted-foreground">
               Ready to publish with Voidwrite? Access the studio to pitch your next story.
             </p>
             <Link
