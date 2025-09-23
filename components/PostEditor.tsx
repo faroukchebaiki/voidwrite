@@ -71,6 +71,7 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
   const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
   const [tagSearch, setTagSearch] = useState("");
   const [postId, setPostId] = useState<number | null>(initial.id ?? null);
+  const [dirty, setDirty] = useState(false);
   const heading = mode === 'create' ? 'Create Post' : 'Edit Post';
 
   const fileRef = useRef<HTMLInputElement>(null);
@@ -109,11 +110,11 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
   );
 
   const emitActionState = useCallback(
-    (canSave: boolean, canPublish: boolean, canAssign: boolean, publishLabel: string) => {
+    (canSave: boolean, canPublish: boolean, canAssign: boolean, publishLabel: string, highlightSave: boolean) => {
       if (typeof window !== "undefined") {
         window.dispatchEvent(
           new CustomEvent("voidwrite:actions-state", {
-            detail: { canSave, canPublish, canDelete: deleteAllowed, canAssign, publishLabel },
+            detail: { canSave, canPublish, canDelete: deleteAllowed, canAssign, publishLabel, highlightSave },
           })
         );
       }
@@ -123,25 +124,83 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
 
   const readyForSubmit = isAdmin ? hasTitle : (isComplete && selectedTags.length > 0);
 
+  const snapshotRef = useRef<{ title: string; slug: string; excerpt: string; content: string; coverImageUrl: string; seoKeywords: string; tags: string } | null>(null);
+
+  useEffect(() => {
+    snapshotRef.current = {
+      title,
+      slug,
+      excerpt,
+      content,
+      coverImageUrl,
+      seoKeywords,
+      tags: selectedTags.join('|'),
+    };
+    setDirty(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const current = {
+      title,
+      slug,
+      excerpt,
+      content,
+      coverImageUrl,
+      seoKeywords,
+      tags: selectedTags.join('|'),
+    };
+    const last = snapshotRef.current;
+    if (!last) {
+      snapshotRef.current = current;
+      setDirty(false);
+      return;
+    }
+    const changed =
+      current.title !== last.title ||
+      current.slug !== last.slug ||
+      current.excerpt !== last.excerpt ||
+      current.content !== last.content ||
+      current.coverImageUrl !== last.coverImageUrl ||
+      current.seoKeywords !== last.seoKeywords ||
+      current.tags !== last.tags;
+    if (changed !== dirty) {
+      setDirty(changed);
+    }
+  }, [content, coverImageUrl, dirty, excerpt, seoKeywords, selectedTags, slug, title]);
+
+  const markSavedSnapshot = useCallback(() => {
+    snapshotRef.current = {
+      title,
+      slug,
+      excerpt,
+      content,
+      coverImageUrl,
+      seoKeywords,
+      tags: selectedTags.join('|'),
+    };
+    setDirty(false);
+  }, [content, coverImageUrl, excerpt, selectedTags, seoKeywords, slug, title]);
+
   useEffect(() => {
     return () => {
-      emitActionState(false, false, false, isAdmin ? "Publish" : "Submit");
+      emitActionState(false, false, false, isAdmin ? "Publish" : "Submit", false);
     };
   }, [emitActionState, isAdmin]);
 
   useEffect(() => {
-    emitActionState(true, readyForSubmit, isAdmin && hasTitle, isAdmin ? "Publish" : "Submit");
-  }, [emitActionState, isAdmin, hasTitle, readyForSubmit, deleteAllowed]);
+    emitActionState(true, !dirty && readyForSubmit, isAdmin && hasTitle, isAdmin ? "Publish" : "Submit", dirty);
+  }, [dirty, emitActionState, isAdmin, hasTitle, readyForSubmit, deleteAllowed]);
 
   useEffect(() => {
     const onRequest = () => {
-      emitActionState(true, readyForSubmit, isAdmin && hasTitle, isAdmin ? "Publish" : "Submit");
+      emitActionState(true, !dirty && readyForSubmit, isAdmin && hasTitle, isAdmin ? "Publish" : "Submit", dirty);
     };
     if (typeof window !== 'undefined') {
       window.addEventListener('voidwrite:request-actions-state', onRequest);
       return () => window.removeEventListener('voidwrite:request-actions-state', onRequest);
     }
-  }, [emitActionState, hasTitle, isAdmin, readyForSubmit]);
+  }, [dirty, emitActionState, hasTitle, isAdmin, readyForSubmit]);
 
   const loadTeam = useCallback(async () => {
     if (teamLoading) return;
@@ -250,6 +309,7 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
         setPostId(created.id);
         setSlug(created.slug || nextSlug);
         toast.success('Draft saved. Continue editing or submit when ready.', { position: 'bottom-center', duration: 4000 });
+        markSavedSnapshot();
         router.replace(`/studio/posts/${created.id}`);
         return created.id as number;
       }
@@ -288,6 +348,7 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
       }
       setSlug(nextSlug);
       toast.success('Post saved', { position: 'bottom-center' });
+      markSavedSnapshot();
       router.refresh();
       return postId;
     } catch (err: any) {
@@ -296,7 +357,7 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
     } finally {
       setSaving(false);
     }
-  }, [hasTitle, hasContent, selectedTags, saving, slug, slugify, title, excerpt, content, coverImageUrl, seoKeywords, postId, isAdmin, noteDraft, router]);
+  }, [coverImageUrl, content, excerpt, hasContent, hasTitle, isAdmin, markSavedSnapshot, noteDraft, postId, router, saving, selectedTags, slug, slugify, title, seoKeywords]);
 
   const onPublish = useCallback(async () => {
     if (publishing) return;
@@ -463,7 +524,7 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
             aria-label="Post title"
           />
         </div>
-        {isAdmin && (
+        {isAdmin && mode === 'edit' && (
           <div>
             <label className="block text-sm mb-1">Slug</label>
             <input

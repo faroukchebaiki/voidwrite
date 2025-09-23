@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState, type ComponentType, type SVGProps } from 'react';
 import { useTheme } from 'next-themes';
-import { Facebook, Instagram, Moon, Sun, Twitter, Youtube } from 'lucide-react';
+import { Facebook, Instagram, Moon, Sun, Twitter, Youtube, Home } from 'lucide-react';
 import { siteConfig } from '@/site';
 
 import { buttonVariants, Button } from '@/components/ui/button';
@@ -75,9 +75,10 @@ export default function Header({ siteTitle, tags, initialMode }: HeaderProps) {
     setTheme(next);
   };
 
-  const navItems = useMemo(() => {
-    const base = [{ label: 'Home', href: '/' }];
-    const tagItems = tags.map((tag) => ({ label: tag.name, href: `/tag/${tag.slug}` }));
+  type NavItem = { label: string; href: string; icon?: typeof Home };
+  const navItems: NavItem[] = useMemo(() => {
+    const base: NavItem[] = [{ label: 'Home', href: '/', icon: Home }];
+    const tagItems: NavItem[] = tags.map((tag) => ({ label: tag.name ?? tag.slug ?? '', href: `/tag/${tag.slug}` }));
     return [...base, ...tagItems];
   }, [tags]);
 
@@ -123,7 +124,10 @@ export default function Header({ siteTitle, tags, initialMode }: HeaderProps) {
                   isActive && 'bg-accent text-accent-foreground'
                 )}
               >
-                {item.label}
+                <span className="flex items-center gap-2">
+                  {item.icon ? <item.icon className="size-4" aria-hidden /> : null}
+                  {!item.icon && <span>{item.label}</span>}
+                </span>
               </Link>
             );
           })}

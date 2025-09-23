@@ -22,18 +22,18 @@ export type PostRow = {
   assignedToName?: string;
 };
 
-export default function PostsTableClient({ rows, total, limit, mine, draftOnly, sort, authorOptions = [], author, status, assigneeOptions = [], assignee }: {
+export default function PostsTableClient({ rows, total, limit, mine, sort, authorOptions = [], author, status, assigneeOptions = [], assignee, draftOnly }: {
   rows: PostRow[];
   total: number;
   limit: number;
   mine: boolean;
-  draftOnly: boolean;
   sort: string;
   authorOptions?: { id: string; label: string }[];
   author?: string | null;
   status?: string;
   assigneeOptions?: { id: string; label: string }[];
   assignee?: string | null;
+  draftOnly?: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -52,11 +52,11 @@ export default function PostsTableClient({ rows, total, limit, mine, draftOnly, 
     startTransition(() => router.push(url));
   };
 
-  const onToggleDraft = () => updateParam("draft", draftOnly ? "" : "1");
   const onSort = (v: string) => updateParam("sort", v);
   const onAuthor = (v: string) => updateParam("author", v === "all" ? "" : v);
   const onStatus = (v: string) => updateParam("status", v === 'all' ? "" : v);
   const onAssignee = (v: string) => updateParam("assignee", v === 'all' ? "" : v);
+  const onToggleDraft = () => updateParam("draft", draftOnly ? "" : "1");
   const onPrev = () => updateParam('offset', String(Math.max(0, offset - limit)), { resetOffset: false });
   const onNext = () => updateParam('offset', String(offset + limit), { resetOffset: false });
 
@@ -74,9 +74,6 @@ export default function PostsTableClient({ rows, total, limit, mine, draftOnly, 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant={draftOnly ? "default" : "outline"} size="sm" onClick={onToggleDraft} aria-pressed={draftOnly}>
-          {draftOnly ? "Showing Drafts" : "Drafts filter"}
-        </Button>
         {!mine && authorOptions.length > 0 && (
           <div className="flex items-center gap-2">
             <label className="text-sm text-muted-foreground">Author:</label>
@@ -100,6 +97,11 @@ export default function PostsTableClient({ rows, total, limit, mine, draftOnly, 
               <AssigneeSelect value={assignee || 'all'} onValueChange={onAssignee} options={assigneeOptions} />
             </div>
           </div>
+        )}
+        {mine && (
+          <Button variant={draftOnly ? "default" : "outline"} size="sm" onClick={onToggleDraft} aria-pressed={draftOnly}>
+            {draftOnly ? "Showing Drafts" : "Drafts"}
+          </Button>
         )}
         <div className="ml-auto flex items-center gap-2">
           <label className="text-sm text-muted-foreground">Sort:</label>

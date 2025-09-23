@@ -65,7 +65,7 @@ export default async function MyBlogsPage({ searchParams }: any) {
     id: p.id,
     title: p.title,
     slug: p.slug,
-    status: String(p.status),
+    status: p.publishedAt ? 'published' : String(p.status),
     visits: Number((p as any).views ?? 0),
     updatedAt: p.updatedAt as any,
     authorId: p.authorId,

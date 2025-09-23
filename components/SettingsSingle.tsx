@@ -20,6 +20,7 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
   const [username, setUsername] = useState("");
+  const BIO_LIMIT = 300;
   const [bio, setBio] = useState("");
   const [social, setSocial] = useState<string>("");
   const router = useRouter();
@@ -60,7 +61,7 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
         setFirst(p.firstName || '');
         setLast(p.lastName || '');
         setUsername(p.username || '');
-        setBio(p.bio || '');
+        setBio(p.bio ? String(p.bio).slice(0, BIO_LIMIT) : '');
         setSocial(p.link || '');
         if (p.avatarUrl) {
           setAvatarUrl(p.avatarUrl);
@@ -521,8 +522,16 @@ const persistPasskeyLabel = async (credentialId: string, label?: string) => {
             <input className="w-full border rounded px-3 py-2" placeholder="janedoe" value={username} onChange={(e)=>setUsername(e.target.value)} />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm mb-1">Bio</label>
-            <textarea className="w-full border rounded px-3 py-2" rows={4} placeholder="Short bio" value={bio} onChange={(e)=>setBio(e.target.value)} />
+            <label className="mb-1 block text-sm">Bio</label>
+            <textarea
+              className="w-full border rounded px-3 py-2"
+              rows={4}
+              placeholder="Short bio"
+              value={bio}
+              maxLength={BIO_LIMIT}
+              onChange={(e) => setBio(e.target.value.slice(0, BIO_LIMIT))}
+            />
+            <div className="mt-1 text-right text-xs text-muted-foreground">{bio.length}/{BIO_LIMIT}</div>
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm mb-1">Social link</label>

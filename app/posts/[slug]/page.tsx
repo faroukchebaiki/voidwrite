@@ -3,13 +3,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { headers } from "next/headers";
 import { db } from "@/db";
-import { posts, profiles } from "@/db/schema";
+import { posts, profiles, tags } from "@/db/schema";
 import { users } from "@/db/auth-schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { renderMarkdown } from "@/lib/markdown";
 import ViewTracker from "@/components/ViewTracker";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PostShareBar } from "@/components/PostShareBar";
+import StayInLoopCard from "@/components/articles/StayInLoopCard";
+import BrowseTopicsCard from "@/components/articles/BrowseTopicsCard";
 
 export const revalidate = 60;
 export const dynamic = 'force-dynamic';
@@ -73,9 +75,10 @@ export default async function PostPage({ params }: any) {
   const envBase = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? process.env.VERCEL_URL?.replace(/\/$/, '');
   const baseUrl = host ? `${proto}://${host}` : envBase ? (envBase.startsWith('http') ? envBase : `https://${envBase}`) : 'https://voidwrite.com';
   const postUrl = `${baseUrl.replace(/\/$/, '')}/posts/${post.slug}`;
+  const allTags = await db.select().from(tags).orderBy(sql`${tags.name}`);
 
   return (
-    <main className="mx-auto reading-width px-0 py-8 font-roboto sm:py-12">
+    <main className="mx-auto max-w-6xl px-4 py-8 font-roboto sm:py-12">
       <ViewTracker slug={slug} />
       {coverImageUrl ? (
         <section className="relative mb-8 overflow-hidden rounded-xl border border-border/40 bg-background/65 supports-[backdrop-filter]:backdrop-blur-md dark:border-border/30 dark:bg-background/55">
@@ -95,31 +98,37 @@ export default async function PostPage({ params }: any) {
           </div>
         </section>
       ) : null}
-      <div className="border border-border/40 bg-card/90 px-4 py-8 shadow-sm sm:px-9 sm:py-11 dark:border-border/30 dark:bg-background/55 supports-[backdrop-filter]:backdrop-blur rounded-xl">
-        {!coverImageUrl && (
-          <>
-            <h1 className="text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
-              {post.title}
-            </h1>
-            {post.excerpt && (
-              <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-                {post.excerpt}
-              </p>
-            )}
-          </>
-        )}
-        <p className="mt-6 text-xs uppercase tracking-[0.3em] text-muted-foreground">
-          {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : new Date(post.createdAt!).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-        </p>
-        <div className="prose dark:prose-invert mt-6" dangerouslySetInnerHTML={{ __html: html }} />
-        <PostShareBar url={postUrl} title={post.title} className="mt-10" />
-        <AuthorCard
-          name={authorDisplayName}
-          bio={authorBio}
-          image={authorImage}
-          initials={initials}
-          link={authorLink}
-        />
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
+        <article className="rounded-xl border border-border/40 bg-card/90 px-4 py-8 shadow-sm sm:px-9 sm:py-11 dark:border-border/30 dark:bg-background/55 supports-[backdrop-filter]:backdrop-blur">
+          {!coverImageUrl && (
+            <>
+              <h1 className="text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
+                {post.title}
+              </h1>
+              {post.excerpt && (
+                <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+                  {post.excerpt}
+                </p>
+              )}
+            </>
+          )}
+          <p className="mt-6 text-xs uppercase tracking-[0.3em] text-muted-foreground">
+            {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : new Date(post.createdAt!).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+          </p>
+          <div className="prose dark:prose-invert mt-6" dangerouslySetInnerHTML={{ __html: html }} />
+          <PostShareBar url={postUrl} title={post.title} className="mt-10" />
+          <AuthorCard
+            name={authorDisplayName}
+            bio={authorBio}
+            image={authorImage}
+            initials={initials}
+            link={authorLink}
+          />
+        </article>
+        <aside className="space-y-6">
+          <StayInLoopCard />
+          <BrowseTopicsCard tags={allTags} />
+        </aside>
       </div>
     </main>
   );

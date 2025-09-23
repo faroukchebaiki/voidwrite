@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -20,6 +21,7 @@ export function SiteHeader() {
   const [canDelete, setCanDelete] = useState(false);
   const [canAssign, setCanAssign] = useState(false);
   const [publishLabel, setPublishLabel] = useState('Publish');
+  const [highlightSave, setHighlightSave] = useState(false);
   const breadcrumbs = useMemo(() => {
     const items: Array<{ label: string; href: string }> = [
       { label: "Voidwrite Studio", href: "/studio" },
@@ -46,12 +48,13 @@ export function SiteHeader() {
 
   useEffect(() => {
     const handler = (event: Event) => {
-      const detail = (event as CustomEvent<{ canSave?: boolean; canPublish?: boolean; canDelete?: boolean; canAssign?: boolean; publishLabel?: string }>).detail || {};
+      const detail = (event as CustomEvent<{ canSave?: boolean; canPublish?: boolean; canDelete?: boolean; canAssign?: boolean; publishLabel?: string; highlightSave?: boolean }>).detail || {};
       if (typeof detail.canSave === "boolean") setCanSave(detail.canSave);
       if (typeof detail.canPublish === "boolean") setCanPublish(detail.canPublish);
       if (typeof detail.canDelete === "boolean") setCanDelete(detail.canDelete);
       if (typeof detail.canAssign === "boolean") setCanAssign(detail.canAssign);
       if (typeof detail.publishLabel === 'string') setPublishLabel(detail.publishLabel);
+      if (typeof detail.highlightSave === 'boolean') setHighlightSave(detail.highlightSave);
     };
     window.addEventListener("voidwrite:actions-state", handler);
     window.dispatchEvent(new CustomEvent('voidwrite:request-actions-state'));
@@ -62,6 +65,7 @@ export function SiteHeader() {
       setCanDelete(false);
       setCanAssign(false);
       setPublishLabel('Publish');
+      setHighlightSave(false);
     };
   }, [pathname]);
 
@@ -95,7 +99,15 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-2">
           {showActions && !isMobile && (
             <>
-              <Button size="sm" variant="outline" onClick={onSave} disabled={!canSave}>Save</Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onSave}
+                disabled={!canSave}
+                className={cn(highlightSave && 'border-primary text-primary shadow-[0_0_0_1px_hsl(var(--color-primary))] animate-pulse')}
+              >
+                Save
+              </Button>
               <Button size="sm" onClick={onPublish} disabled={!canPublish}>{publishLabel}</Button>
             </>
           )}
