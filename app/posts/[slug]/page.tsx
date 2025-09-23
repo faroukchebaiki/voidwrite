@@ -67,7 +67,7 @@ export default async function PostPage({ params }: any) {
     .map((segment) => segment.charAt(0).toUpperCase())
     .join('') || 'VW';
   const coverImageUrl = post.coverImageUrl?.trim() || null;
-  const headersList = headers();
+  const headersList = await headers();
   const proto = headersList.get('x-forwarded-proto') ?? 'https';
   const host = headersList.get('x-forwarded-host') ?? headersList.get('host');
   const envBase = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? process.env.VERCEL_URL?.replace(/\/$/, '');
