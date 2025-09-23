@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Roboto_Mono, Kdam_Thmor_Pro } from 'next/font/google';
+import { Roboto_Mono, Kdam_Thmor_Pro, Roboto } from 'next/font/google';
 import './globals.css';
 import '../styles/theme.css';
 import { ThemeProvider } from 'next-themes';
@@ -14,6 +14,7 @@ import { siteConfig } from '@/site';
 
 const monoFont = Roboto_Mono({ subsets: ['latin'], variable: '--font-mono', weight: ['400', '500', '600', '700'], display: 'swap' });
 const logoFont = Kdam_Thmor_Pro({ subsets: ['latin'], variable: '--font-logo', weight: '400', display: 'swap' });
+const robotoFont = Roboto({ subsets: ['latin'], variable: '--font-roboto', weight: ['400', '500', '700'], display: 'swap' });
 
 export const metadata: Metadata = {
   title: siteConfig.title,
@@ -25,15 +26,22 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const themeCookie = cookieStore.get('vw_theme')?.value as 'light'|'dark'|'system'|undefined;
   const initialClass = themeCookie === 'dark' ? 'dark' : themeCookie === 'light' ? '' : '';
   const initialMode: 'light' | 'dark' = themeCookie === 'dark' ? 'dark' : 'light';
-  const navTags = await db
-    .select({ name: tags.name, slug: tags.slug })
-    .from(tags)
-    .orderBy(sql`${tags.name}`);
+  let navTags: { name: string | null; slug: string | null }[] = [];
+  if (process.env.DATABASE_URL) {
+    try {
+      navTags = await db
+        .select({ name: tags.name, slug: tags.slug })
+        .from(tags)
+        .orderBy(sql`${tags.name}`);
+    } catch {
+      console.warn('Navigation tags unavailable, continuing without tags.');
+    }
+  }
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${monoFont.variable} ${logoFont.variable} ${initialClass}`.trim()}
+      className={`${monoFont.variable} ${robotoFont.variable} ${logoFont.variable} ${initialClass}`.trim()}
     >
       <body className="antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

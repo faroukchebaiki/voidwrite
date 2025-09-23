@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState, type ComponentType, type SVGProps } from 'react';
+import { useEffect, useMemo, useState, type ComponentType, type SVGProps } from 'react';
 import { useTheme } from 'next-themes';
 import { Facebook, Instagram, Moon, Sun, Twitter, Youtube } from 'lucide-react';
 import { siteConfig } from '@/site';
@@ -51,51 +51,6 @@ export default function Header({ siteTitle, tags, initialMode }: HeaderProps) {
   const { theme, setTheme, systemTheme } = useTheme();
   const hideHeader = pathname === '/signin' || pathname === '/signup' || pathname?.startsWith('/studio');
   const [mounted, setMounted] = useState(false);
-  const [showBrand, setShowBrand] = useState(true);
-  const showBrandRef = useRef(true);
-  const lastScrollY = useRef(0);
-  const ticking = useRef(false);
-
-  const setBrandVisibility = (visible: boolean) => {
-    if (showBrandRef.current === visible) return;
-    showBrandRef.current = visible;
-    setShowBrand(visible);
-  };
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const TOP_THRESHOLD = 80;
-    const DOWN_THRESHOLD = 24;
-    const UP_THRESHOLD = 16;
-    lastScrollY.current = window.scrollY;
-    const handleScroll = () => {
-      const currentY = window.scrollY;
-      if (ticking.current) return;
-      ticking.current = true;
-      window.requestAnimationFrame(() => {
-        const lastY = lastScrollY.current;
-        if (currentY <= TOP_THRESHOLD) {
-          setBrandVisibility(true);
-        } else if (currentY < lastY - UP_THRESHOLD) {
-          setBrandVisibility(true);
-        } else if (currentY > lastY + DOWN_THRESHOLD && currentY > TOP_THRESHOLD) {
-          setBrandVisibility(false);
-        }
-        lastScrollY.current = currentY;
-        ticking.current = false;
-      });
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    showBrandRef.current = true;
-    setShowBrand(true);
-    if (typeof window !== 'undefined') {
-      lastScrollY.current = window.scrollY;
-    }
-  }, [pathname]);
 
   useEffect(() => {
     setMounted(true);
@@ -129,15 +84,9 @@ export default function Header({ siteTitle, tags, initialMode }: HeaderProps) {
   if (hideHeader) return null;
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto max-w-6xl px-4">
-        <div
-          className={cn(
-            'flex flex-col gap-4 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out',
-            showBrand ? 'max-h-40 translate-y-0 opacity-100 py-6' : 'pointer-events-none max-h-0 -translate-y-3 opacity-0'
-          )}
-          aria-hidden={!showBrand}
-        >
+    <>
+      <header className="border-b bg-background">
+        <div className="mx-auto max-w-6xl px-4 py-6">
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
             <Link href="/" className="font-logo text-4xl text-foreground sm:text-5xl" aria-label={`${siteTitle} home`}>
               {siteTitle || 'Voidwrite'}
@@ -158,12 +107,9 @@ export default function Header({ siteTitle, tags, initialMode }: HeaderProps) {
             </div>
           </div>
         </div>
-        <nav
-          className={cn(
-            'flex items-center gap-2 overflow-x-auto border-t border-border/60 text-sm transition-all duration-200',
-            showBrand ? 'py-3' : 'py-2'
-          )}
-        >
+      </header>
+      <nav className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+        <div className="mx-auto flex max-w-6xl items-center gap-2 overflow-x-auto px-4 py-3 text-sm">
           {navItems.map((item) => {
             const isActive = item.href === '/' ? pathname === '/' : pathname?.startsWith(item.href);
             return (
@@ -193,8 +139,8 @@ export default function Header({ siteTitle, tags, initialMode }: HeaderProps) {
               {resolvedMode === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
             </Button>
           </div>
-        </nav>
-      </div>
-    </header>
+        </div>
+      </nav>
+    </>
   );
 }

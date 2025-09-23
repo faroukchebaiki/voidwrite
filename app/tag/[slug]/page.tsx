@@ -39,8 +39,8 @@ export default async function TagPage({ params }: any) {
         {list.map((p) => {
           const excerptPreview = summarizeExcerpt(p.excerpt);
           return (
-            <article key={p.id} className="rounded-xl border border-border/60 p-5 transition-all duration-200 hover:border-primary/40 hover:shadow-md">
-              <h2 className="font-heading text-xl font-semibold leading-snug text-foreground sm:text-2xl">
+            <article key={p.id} className="font-roboto rounded-xl border border-border/60 p-5 transition-colors duration-200 hover:border-primary/40">
+              <h2 className="text-xl font-semibold leading-snug text-foreground sm:text-2xl">
                 <Link href={`/posts/${p.slug}`}>{p.title}</Link>
               </h2>
               {excerptPreview && (

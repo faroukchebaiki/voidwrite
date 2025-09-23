@@ -77,56 +77,47 @@ export default async function Home({ searchParams }: { searchParams?: Promise<Re
             return (
               <Card
                 key={p.id}
-                className="group overflow-hidden border-border/60 p-0 transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"
+                className="group font-roboto overflow-hidden border border-border/60 p-0 shadow-none transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
               >
-                <div className="flex flex-col md:h-full md:flex-row">
-                  <div className="relative h-52 w-full overflow-hidden md:h-auto md:min-h-[240px] md:w-[45%] lg:w-[40%]">
-                    <Image
-                      src={imageSrc}
-                      alt={p.title}
-                      fill
-                      sizes="(min-width: 1024px) 480px, (min-width: 640px) 60vw, 100vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      priority={false}
-                    />
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[hsl(var(--background))]" />
-                  </div>
-                  <div className="flex flex-1 flex-col justify-between bg-card">
-                    <div className="space-y-4 px-6 py-6">
-                      <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-                        <span>{displayDate}</span>
-                        <span className="hidden sm:inline">•</span>
-                        <span>{numberFormatter.format(p.views ?? 0)} views</span>
-                      </div>
-                      <Link
-                        href={`/posts/${p.slug}`}
-                        className="font-heading text-xl leading-tight tracking-tight transition-colors duration-200 group-hover:text-primary sm:text-2xl"
-                      >
-                        {p.title}
-                      </Link>
-                      {excerptPreview ? (
-                        <p className="text-sm leading-relaxed text-muted-foreground/90 sm:text-base">
-                          {excerptPreview}
-                        </p>
-                      ) : null}
+                <div className="relative aspect-[16/10] w-full">
+                  <Image
+                    src={imageSrc}
+                    alt={p.title}
+                    fill
+                    sizes="(min-width: 1024px) 480px, (min-width: 640px) 60vw, 100vw"
+                    className="object-cover"
+                    priority={false}
+                  />
+                </div>
+                <div className="flex flex-col justify-between bg-card">
+                  <div className="flex flex-col gap-5 px-6 py-6">
+                    <div className="flex flex-wrap items-center gap-2 text-[0.72rem] uppercase tracking-[0.18em] text-muted-foreground">
+                      <span>{displayDate}</span>
+                      <span className="hidden sm:inline">•</span>
+                      <span>{numberFormatter.format(p.views ?? 0)} views</span>
                     </div>
-                    <CardFooter className="flex items-center justify-between border-t px-6 py-4">
-                      <span className="text-xs uppercase tracking-widest text-muted-foreground">
-                        {attributionLabel}
-                      </span>
-                      <Button
-                        asChild
-                        size="sm"
-                        variant="ghost"
-                        className="group/cta font-medium"
-                      >
-                        <Link href={`/posts/${p.slug}`} className="flex items-center gap-2">
-                          Read article
-                          <ArrowRight className="size-4 transition-transform group-hover/cta:translate-x-1" />
-                        </Link>
-                      </Button>
-                    </CardFooter>
+                    <Link
+                      href={`/posts/${p.slug}`}
+                      className="text-2xl font-semibold leading-snug text-foreground transition-colors duration-200 group-hover:text-primary sm:text-3xl"
+                    >
+                      {p.title}
+                    </Link>
+                    {excerptPreview ? (
+                      <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+                        {excerptPreview}
+                      </p>
+                    ) : null}
                   </div>
+                  <CardFooter className="border-t border-border/60 bg-card/80 px-6 py-4 pt-4 text-[0.72rem] uppercase tracking-[0.18em] text-muted-foreground justify-between">
+                    <span>{attributionLabel}</span>
+                    <Link
+                      href={`/posts/${p.slug}`}
+                      className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors duration-200 hover:text-primary/80"
+                    >
+                      Read article
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </CardFooter>
                 </div>
               </Card>
             );

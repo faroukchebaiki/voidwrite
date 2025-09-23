@@ -187,11 +187,14 @@
     font-family: var(--font-logo), "Kdam Thmor Pro", "Rajdhani", sans-serif;
     letter-spacing: 0.04em;
   }
+  .font-roboto {
+    font-family: var(--font-roboto), "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
 }
 
 @layer components {
   .prose {
-    font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-family: var(--font-roboto), "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: var(--fs-base);
     line-height: var(--lh-loose);
     max-width: min(68ch, 100%);
@@ -209,7 +212,7 @@
     margin-block: 1.3em;
   }
   .prose :where(h1):not(:where([class~="not-prose"] *)) {
-    font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-family: var(--font-roboto), "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: var(--fs-3xl);
     line-height: var(--lh-tight);
     letter-spacing: var(--tracking-tight);
@@ -217,20 +220,20 @@
     margin-block-end: 0.7em;
   }
   .prose :where(h2):not(:where([class~="not-prose"] *)) {
-    font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-family: var(--font-roboto), "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: var(--fs-2xl);
     line-height: var(--lh-snug);
     letter-spacing: var(--tracking-tight);
     margin-block: 1.6em 0.6em;
   }
   .prose :where(h3):not(:where([class~="not-prose"] *)) {
-    font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-family: var(--font-roboto), "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: var(--fs-xl);
     line-height: var(--lh-snug);
     margin-block: 1.4em 0.5em;
   }
   .prose :where(h4, h5, h6):not(:where([class~="not-prose"] *)) {
-    font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-family: var(--font-roboto), "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: var(--fs-lg);
     line-height: var(--lh-snug);
     margin-block: 1.2em 0.4em;

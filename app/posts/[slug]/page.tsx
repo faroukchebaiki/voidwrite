@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { headers } from "next/headers";
 import { db } from "@/db";
 import { posts, profiles } from "@/db/schema";
 import { users } from "@/db/auth-schema";
@@ -8,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { renderMarkdown } from "@/lib/markdown";
 import ViewTracker from "@/components/ViewTracker";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PostShareBar } from "@/components/PostShareBar";
 
 export const revalidate = 60;
 export const dynamic = 'force-dynamic';
@@ -50,58 +52,75 @@ export default async function PostPage({ params }: any) {
   const profile = row?.profile;
   const authorUser = row?.user;
   const authorNameParts = [profile?.firstName?.trim(), profile?.lastName?.trim()].filter(Boolean) as string[];
-  const authorDisplayName = authorNameParts.join(' ').trim() || (authorUser?.name?.trim() ?? 'Voidwrite Contributor');
+  const rawAuthorName = authorNameParts.length > 0
+    ? authorNameParts.join(' ')
+    : authorUser?.name?.trim() ?? 'Voidwrite Contributor';
+  const authorDisplayName = toTitleCase(rawAuthorName) || 'Voidwrite Contributor';
   const authorBio = profile?.bio?.trim() || null;
   const authorImage = authorUser?.image?.trim() || null;
   const rawLink = profile?.link?.trim() || null;
   const authorLink = normalizeLink(rawLink);
-  const authorHost = (() => {
-    if (!authorLink) return null;
-    try {
-      return new URL(authorLink).hostname;
-    } catch {
-      return null;
-    }
-  })();
   const initials = authorDisplayName
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((segment) => segment.charAt(0).toUpperCase())
     .join('') || 'VW';
+  const coverImageUrl = post.coverImageUrl?.trim() || null;
+  const headersList = headers();
+  const proto = headersList.get('x-forwarded-proto') ?? 'https';
+  const host = headersList.get('x-forwarded-host') ?? headersList.get('host');
+  const envBase = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? process.env.VERCEL_URL?.replace(/\/$/, '');
+  const baseUrl = host ? `${proto}://${host}` : envBase ? (envBase.startsWith('http') ? envBase : `https://${envBase}`) : 'https://voidwrite.com';
+  const postUrl = `${baseUrl.replace(/\/$/, '')}/posts/${post.slug}`;
 
   return (
-    <main className="mx-auto reading-width px-4 py-8 sm:py-12">
+    <main className="mx-auto reading-width px-0 py-8 font-roboto sm:py-12">
       <ViewTracker slug={slug} />
-      {post.coverImageUrl && (
-        <div className="mb-8 overflow-hidden rounded-xl border border-border/60">
+      {coverImageUrl ? (
+        <section className="relative mb-8 overflow-hidden rounded-xl border border-border/40 bg-background/65 supports-[backdrop-filter]:backdrop-blur-md dark:border-border/30 dark:bg-background/55">
           <Image
-            src={post.coverImageUrl}
+            src={coverImageUrl}
             alt={post.title}
-            width={1200}
-            height={630}
-            className="h-auto w-full object-cover"
+            fill
+            className="object-cover opacity-80"
             priority={false}
+            sizes="(min-width: 1024px) 960px, 100vw"
           />
-        </div>
-      )}
-      <h1 className="font-heading text-4xl font-semibold leading-tight tracking-tight text-foreground sm:text-5xl">
-        {post.title}
-      </h1>
-      {post.excerpt && (
-        <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-          {post.excerpt}
+          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/65 to-background/80 dark:from-background/70 dark:via-background/80 dark:to-background/90" />
+          <div className="relative mx-auto flex max-w-4xl flex-col gap-3 px-6 py-10 text-left text-foreground sm:px-10 sm:py-12">
+            <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+              {post.title}
+            </h1>
+          </div>
+        </section>
+      ) : null}
+      <div className="border border-border/40 bg-card/90 px-4 py-8 shadow-sm sm:px-9 sm:py-11 dark:border-border/30 dark:bg-background/55 supports-[backdrop-filter]:backdrop-blur rounded-xl">
+        {!coverImageUrl && (
+          <>
+            <h1 className="text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
+              {post.title}
+            </h1>
+            {post.excerpt && (
+              <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+                {post.excerpt}
+              </p>
+            )}
+          </>
+        )}
+        <p className="mt-6 text-xs uppercase tracking-[0.3em] text-muted-foreground">
+          {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : new Date(post.createdAt!).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
         </p>
-      )}
-      <div className="prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: html }} />
-      <AuthorCard
-        name={authorDisplayName}
-        bio={authorBio}
-        image={authorImage}
-        initials={initials}
-        link={authorLink}
-        host={authorHost}
-      />
+        <div className="prose dark:prose-invert mt-6" dangerouslySetInnerHTML={{ __html: html }} />
+        <PostShareBar url={postUrl} title={post.title} className="mt-10" />
+        <AuthorCard
+          name={authorDisplayName}
+          bio={authorBio}
+          image={authorImage}
+          initials={initials}
+          link={authorLink}
+        />
+      </div>
     </main>
   );
 }
@@ -114,22 +133,29 @@ function normalizeLink(url: string | null): string | null {
   return `https://${trimmed}`;
 }
 
+function toTitleCase(input: string | null | undefined): string {
+  if (!input) return '';
+  return input
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+    .join(' ');
+}
+
 function AuthorCard({
   name,
   bio,
   image,
   initials,
   link,
-  host,
 }: {
   name: string;
   bio: string | null;
   image: string | null;
   initials: string;
   link: string | null;
-  host: string | null;
 }) {
-  const classes = 'group mt-12 block rounded-2xl border border-border/70 bg-card/80 p-6 transition-colors duration-200 hover:border-primary/50 hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40';
+  const classes = 'group mt-12 block rounded-2xl border border-border/70 bg-card/80 p-6 font-roboto transition-colors duration-200 hover:border-primary/50 hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40';
   const content = (
     <div className="flex flex-wrap items-start gap-4 sm:flex-nowrap">
       <Avatar className="h-16 w-16 border border-border/60">
@@ -137,19 +163,13 @@ function AuthorCard({
         <AvatarFallback>{initials}</AvatarFallback>
       </Avatar>
       <div className="flex-1 space-y-2">
-        <div className="font-heading text-lg font-semibold tracking-tight text-foreground">
+        <div className="text-lg font-semibold tracking-tight text-foreground">
           {name}
         </div>
         {bio ? (
           <p className="text-sm leading-relaxed text-muted-foreground">
             {bio}
           </p>
-        ) : null}
-        {link ? (
-          <span className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-primary">
-            Visit profile
-            {host && <span className="text-muted-foreground">({host})</span>}
-          </span>
         ) : null}
       </div>
     </div>
