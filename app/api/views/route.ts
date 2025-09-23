@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { posts, dailyPostViews } from '@/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -27,8 +27,17 @@ export async function POST(req: Request) {
       .returning({ id: posts.id, views: posts.views });
     // Upsert daily count
     const day = new Date().toISOString().slice(0,10);
-    await db.execute(sql`insert into ${dailyPostViews} (${dailyPostViews.postId}, ${dailyPostViews.day}, ${dailyPostViews.count}) values (${row.id}, ${day}, 1)
-      on conflict (${dailyPostViews.postId}, ${dailyPostViews.day}) do update set ${dailyPostViews.count} = ${dailyPostViews.count} + 1` as any);
+    const inserted = await db
+      .insert(dailyPostViews)
+      .values({ postId: row.id, day, count: 1 })
+      .onConflictDoNothing()
+      .returning({ postId: dailyPostViews.postId });
+    if (inserted.length === 0) {
+      await db
+        .update(dailyPostViews)
+        .set({ count: sql`${dailyPostViews.count} + 1` })
+        .where(and(eq(dailyPostViews.postId, row.id), eq(dailyPostViews.day, day)));
+    }
 
     const res = NextResponse.json(updated);
     const maxAge = 60 * 60 * 24; // 1 day
