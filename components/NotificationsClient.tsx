@@ -3,8 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import { Button } from "@/components/ui/button";
+
+dayjs.extend(relativeTime);
 
 export type NotificationRow = {
   id: number;
@@ -68,7 +71,9 @@ export default function NotificationsClient({ initial }: { initial: Notification
             }
           })();
           const secondary = payload.title ? `Title: ${payload.title}` : null;
-          const distance = formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true });
+          const distance = dayjs(notification.createdAt).isValid()
+            ? dayjs(notification.createdAt).fromNow()
+            : "";
 
           const Card = (
             <div

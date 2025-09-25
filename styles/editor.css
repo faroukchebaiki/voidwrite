@@ -67,7 +67,7 @@
   z-index: 1;
   padding: 24px;
   min-height: 24rem;
-  font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: var(--fs-base);
   line-height: var(--lh-loose);
   color: hsl(var(--foreground));
@@ -79,10 +79,10 @@
   height: 0;
   float: left;
 }
-.ProseMirror h1 { font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: var(--fs-3xl); line-height: var(--lh-tight); font-weight: 600; margin: 1.25rem 0 .85rem; }
-.ProseMirror h2 { font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: var(--fs-2xl); line-height: var(--lh-snug); font-weight: 600; margin: 1.15rem 0 .75rem; }
-.ProseMirror h3 { font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: var(--fs-xl); line-height: var(--lh-snug); font-weight: 500; margin: 1rem 0 .65rem; }
-.ProseMirror h4 { font-family: var(--font-mono), "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: var(--fs-lg); line-height: var(--lh-snug); font-weight: 500; margin: .85rem 0 .5rem; }
+.ProseMirror h1 { font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: var(--fs-3xl); line-height: var(--lh-tight); font-weight: 600; margin: 1.25rem 0 .85rem; }
+.ProseMirror h2 { font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: var(--fs-2xl); line-height: var(--lh-snug); font-weight: 600; margin: 1.15rem 0 .75rem; }
+.ProseMirror h3 { font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: var(--fs-xl); line-height: var(--lh-snug); font-weight: 500; margin: 1rem 0 .65rem; }
+.ProseMirror h4 { font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: var(--fs-lg); line-height: var(--lh-snug); font-weight: 500; margin: .85rem 0 .5rem; }
 .ProseMirror p { margin: .6rem 0; }
 .ProseMirror a { color: hsl(var(--primary)); text-decoration: underline; text-decoration-thickness: 0.08em; text-underline-offset: 0.25em; }
 .ProseMirror hr { border: none; border-top: 1px solid hsl(var(--border)); margin: 1.5rem 0; }
