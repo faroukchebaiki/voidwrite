@@ -17,18 +17,22 @@ const env = {
   AUTH_WEBAUTHN_ORIGIN: process.env.AUTH_WEBAUTHN_ORIGIN || defaultOrigin,
 };
 
+const adapter = process.env.DATABASE_URL
+  ? DrizzleAdapter(db, {
+      usersTable: users,
+      accountsTable: accounts,
+      sessionsTable: sessions,
+      verificationTokensTable: verificationTokens,
+      authenticatorsTable: authenticators,
+    })
+  : undefined;
+
 export const authConfig = {
   secret: env.AUTH_SECRET,
   trustHost: true,
   session: { strategy: "jwt" },
   experimental: { enableWebAuthn: true },
-  adapter: DrizzleAdapter(db, {
-    usersTable: users,
-    accountsTable: accounts,
-    sessionsTable: sessions,
-    verificationTokensTable: verificationTokens,
-    authenticatorsTable: authenticators,
-  }),
+  adapter,
   providers: [
     Credentials({
       name: "Credentials",

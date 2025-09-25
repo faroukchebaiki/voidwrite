@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { Roboto_Mono, Kdam_Thmor_Pro, Roboto } from 'next/font/google';
 import './globals.css';
 import '../styles/theme.css';
 import { ThemeProvider } from 'next-themes';
@@ -11,10 +10,6 @@ import { db } from '@/db';
 import { tags } from '@/db/schema';
 import { sql } from 'drizzle-orm';
 import { siteConfig } from '@/site';
-
-const monoFont = Roboto_Mono({ subsets: ['latin'], variable: '--font-mono', weight: ['400', '500', '600', '700'], display: 'swap' });
-const logoFont = Kdam_Thmor_Pro({ subsets: ['latin'], variable: '--font-logo', weight: '400', display: 'swap' });
-const robotoFont = Roboto({ subsets: ['latin'], variable: '--font-roboto', weight: ['400', '500', '700'], display: 'swap' });
 
 export const metadata: Metadata = {
   title: siteConfig.title,
@@ -41,7 +36,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${monoFont.variable} ${robotoFont.variable} ${logoFont.variable} ${initialClass}`.trim()}
+      className={initialClass || undefined}
     >
       <body className="antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
