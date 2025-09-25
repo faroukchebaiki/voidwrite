@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { IMAGE_UPLOAD_MAX_BYTES } from "@/lib/uploads";
 
 import RichEditor from "@/components/RichEditor";
 
@@ -247,13 +248,20 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > IMAGE_UPLOAD_MAX_BYTES) {
+      toast.error('Images must be under 3MB. Try uploading a smaller file.');
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
     const body = new FormData();
     body.append("file", file);
     try {
       const res = await fetch("/api/upload", { method: "POST", body });
       if (!res.ok) throw new Error("Upload failed");
-      const { url } = await res.json();
-      setCoverImageUrl(url);
+      const data = await res.json();
+      const best = data?.variants?.['1600w'] || data?.url;
+      if (!best) throw new Error('Upload failed');
+      setCoverImageUrl(best);
       toast.success("Cover uploaded");
     } catch (err: any) {
       toast.error(err?.message || "Upload failed");
@@ -364,7 +372,7 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
     setPublishing(true);
     try {
       let id = postId;
-      if (!id) {
+      if (dirty || !id) {
         id = await onSave();
       }
       if (!id) {
@@ -395,7 +403,7 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
     } finally {
       setPublishing(false);
     }
-  }, [isAdmin, isComplete, onSave, postId, publishing, router]);
+  }, [dirty, isAdmin, isComplete, onSave, postId, publishing, router]);
 
   const onDelete = useCallback(async () => {
     if (!deleteAllowed || !postId) return;
@@ -421,7 +429,7 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
     setAssigning(true);
     try {
       let id = postId;
-      if (!id) {
+      if (dirty || !id) {
         id = await onSave();
       }
       if (!id) {
@@ -451,7 +459,7 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
     } finally {
       setAssigning(false);
     }
-  }, [assignNote, hasTitle, onSave, postId, router, selectedAssignee, teamMembers]);
+  }, [assignNote, dirty, hasTitle, onSave, postId, router, selectedAssignee, teamMembers]);
 
   useEffect(() => {
     const handleSave = () => {

@@ -23,6 +23,7 @@ const NAV_ITEMS: NavItem[] = [
 ] as const;
 
 type SidebarUser = {
+  id?: string | null;
   name?: string | null;
   email?: string | null;
   image?: string | null;
@@ -34,6 +35,7 @@ export function AppSidebar({ role, user, ...props }: { role?: string; user?: Sid
     ? [...NAV_ITEMS]
     : NAV_ITEMS.filter((i) => ['dashboard','new','my','notifications'].includes(String(i.key)));
   const sidebarUser = {
+    id: user?.id || null,
     name: user?.name || user?.email || 'Member',
     email: user?.email || '',
     avatar: user?.image || '',

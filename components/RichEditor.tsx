@@ -11,6 +11,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { Bold, Italic, Underline as UnderlineIcon, Code, Heading1, Heading2, Heading3, Undo2, Redo2, Link as LinkIcon, Image as ImageIcon, Youtube as YoutubeIcon, TerminalSquare } from "lucide-react";
 import '@/styles/editor.css';
 import { toast } from 'sonner';
+import { IMAGE_UPLOAD_MAX_BYTES } from "@/lib/uploads";
 
 export default function RichEditor({ initialHTML = "", onChange }: { initialHTML?: string; onChange?: (html: string) => void; }) {
   const [mounted, setMounted] = useState(false);
@@ -50,14 +51,21 @@ export default function RichEditor({ initialHTML = "", onChange }: { initialHTML
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    if (f.size > IMAGE_UPLOAD_MAX_BYTES) {
+      toast.error('Images must be under 3MB. Try uploading a smaller file.');
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
     setUploading(true);
     try {
       const body = new FormData();
       body.append('file', f);
       const res = await fetch('/api/upload', { method: 'POST', body });
       if (!res.ok) throw new Error('Upload failed');
-      const { url } = await res.json();
-      editor?.chain().focus().setImage({ src: url, alt: f.name }).run();
+      const data = await res.json();
+      const best = data?.variants?.['1280w'] || data?.variants?.['640w'] || data?.url;
+      if (!best) throw new Error('Upload failed');
+      editor?.chain().focus().setImage({ src: best, alt: f.name }).run();
     } catch (e: any) {
       toast.error(e.message || 'Upload error');
     } finally {

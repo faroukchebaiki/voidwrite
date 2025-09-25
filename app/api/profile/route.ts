@@ -35,43 +35,44 @@ export async function PUT(req: Request) {
     firstName: data.firstName ?? null,
     lastName: data.lastName ?? null,
     bio: data.bio ?? null,
-    link: data.link ?? null,
-    username: data.username ?? null,
-  };
+      link: data.link ?? null,
+      username: data.username ?? null,
+    };
   const avatarProvided = Object.prototype.hasOwnProperty.call(data, 'avatarUrl');
   const normalizedAvatar = avatarProvided
     ? (data.avatarUrl ? data.avatarUrl.trim() : null)
     : undefined;
-  const [updated] = await db
-    .update(profiles)
-    .set(payload)
-    .where(eq(profiles.userId, uid))
-    .returning();
-  if (avatarProvided) {
-    await db
-      .update(users)
-      .set({ image: normalizedAvatar ?? null })
-      .where(eq(users.id, uid));
-  }
-  if (updated) {
-    return NextResponse.json({ success: true, profile: updated, message: 'Profile saved' });
-  }
 
-  const [created] = await db
-    .insert(profiles)
-    .values({
-      userId: uid,
-      role: 'editor',
-      ...payload,
-    })
-    .returning();
+  const action = await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(profiles)
+      .set(payload)
+      .where(eq(profiles.userId, uid))
+      .returning();
 
-  if (avatarProvided) {
-    await db
-      .update(users)
-      .set({ image: normalizedAvatar ?? null })
-      .where(eq(users.id, uid));
-  }
+    let profileRow = updated;
 
-  return NextResponse.json({ success: true, profile: created, message: 'Profile saved' });
+    if (!updated) {
+      const [created] = await tx
+        .insert(profiles)
+        .values({
+          userId: uid,
+          role: 'editor',
+          ...payload,
+        })
+        .returning();
+      profileRow = created;
+    }
+
+    if (avatarProvided) {
+      await tx
+        .update(users)
+        .set({ image: normalizedAvatar ?? null })
+        .where(eq(users.id, uid));
+    }
+
+    return profileRow;
+  });
+
+  return NextResponse.json({ success: true, profile: action, message: 'Profile saved' });
 }

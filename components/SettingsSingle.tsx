@@ -5,13 +5,14 @@ import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { IMAGE_UPLOAD_MAX_BYTES } from "@/lib/uploads";
 import { startRegistration } from "@simplewebauthn/browser";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 
 type Passkey = { credentialID: string; counter: number; label?: string | null };
 
-export default function SettingsSingle({ account, passkeys }: { account?: { email?: string; name?: string | null }; passkeys?: Passkey[] }) {
+export default function SettingsSingle({ account, passkeys }: { account?: { id?: string | undefined; email?: string; name?: string | null }; passkeys?: Passkey[] }) {
   // Profile state (local for now)
   const defaultAvatar = "https://github.com/shadcn.png";
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -43,13 +44,15 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
   const previousPasskeyIdsRef = useRef<Set<string>>(new Set(list.map((item) => item.credentialID)));
   const newPasskeyToastShownRef = useRef(false);
 
+  const avatarKey = account?.id ? `profile_avatar_url_${account.id}` : null;
+
   useEffect(() => {
     let mounted = true;
     (async () => {
       let storedAvatar: string | null = null;
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && avatarKey) {
         try {
-          storedAvatar = localStorage.getItem('profile_avatar_url');
+          storedAvatar = localStorage.getItem(avatarKey);
           if (storedAvatar) setAvatarUrl(storedAvatar);
         } catch {}
       }
@@ -65,8 +68,8 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
         setSocial(p.link || '');
         if (p.avatarUrl) {
           setAvatarUrl(p.avatarUrl);
-          if (typeof window !== 'undefined') {
-            try { localStorage.setItem('profile_avatar_url', p.avatarUrl); } catch {}
+          if (typeof window !== 'undefined' && avatarKey) {
+            try { localStorage.setItem(avatarKey, p.avatarUrl); } catch {}
           }
         } else if (!storedAvatar) {
           setAvatarUrl(null);
@@ -74,7 +77,7 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
       } catch {}
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [avatarKey]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -132,15 +135,22 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    if (f.size > IMAGE_UPLOAD_MAX_BYTES) {
+      toast.error('Images must be under 3MB. Try uploading a smaller file.');
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
     setUploading(true);
     try {
       const body = new FormData(); body.append('file', f);
       const res = await fetch('/api/upload', { method: 'POST', body });
       if (!res.ok) throw new Error('Upload failed');
-      const { url } = await res.json();
-      setAvatarUrl(url);
-      if (typeof window !== 'undefined') {
-        try { localStorage.setItem('profile_avatar_url', url); } catch {}
+      const data = await res.json();
+      const best = data?.variants?.['640w'] || data?.variants?.['320w'] || data?.url;
+      if (!best) throw new Error('Upload failed');
+      setAvatarUrl(best);
+      if (typeof window !== 'undefined' && avatarKey) {
+        try { localStorage.setItem(avatarKey, best); } catch {}
       }
       // notify sidebar avatar to update via storage event
     } catch (err) { toast.error((err as any)?.message || 'Upload error'); }
@@ -176,10 +186,12 @@ export default function SettingsSingle({ account, passkeys }: { account?: { emai
     toast.success(message, { position: 'bottom-center', duration: 3500 });
     if (typeof window !== 'undefined') {
       try {
-        if (normalizedAvatar) {
-          localStorage.setItem('profile_avatar_url', normalizedAvatar);
-        } else {
-          localStorage.removeItem('profile_avatar_url');
+        if (avatarKey) {
+          if (normalizedAvatar) {
+            localStorage.setItem(avatarKey, normalizedAvatar);
+          } else {
+            localStorage.removeItem(avatarKey);
+          }
         }
       } catch {}
     }

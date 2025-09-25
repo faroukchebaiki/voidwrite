@@ -22,6 +22,7 @@ export function NavUser({
   user,
 }: {
   user: {
+    id?: string | null
     name?: string | null
     email?: string | null
     avatar?: string | null
@@ -32,22 +33,26 @@ export function NavUser({
   const displayEmail = user.email || '';
   const placeholder = "https://github.com/shadcn.png";
   const [avatar, setAvatar] = useState<string>(user.avatar || placeholder);
+  const storageKey = user.id ? `profile_avatar_url_${user.id}` : null;
   useEffect(() => {
     const base = user.avatar || placeholder;
     setAvatar(base);
     if (typeof window === 'undefined') return;
     try {
-      const stored = window.localStorage.getItem('profile_avatar_url');
-      if (stored) setAvatar(stored);
-      const onStorage = (e: StorageEvent) => {
-        if (e.key === 'profile_avatar_url') {
-          setAvatar(e.newValue || base);
-        }
-      };
-      window.addEventListener('storage', onStorage);
-      return () => window.removeEventListener('storage', onStorage);
+      if (storageKey) {
+        const stored = window.localStorage.getItem(storageKey);
+        if (stored) setAvatar(stored);
+        const onStorage = (e: StorageEvent) => {
+          if (e.key === storageKey) {
+            setAvatar(e.newValue || base);
+          }
+        };
+        window.addEventListener('storage', onStorage);
+        return () => window.removeEventListener('storage', onStorage);
+      }
+      return undefined;
     } catch {}
-  }, [user.avatar, placeholder]);
+  }, [storageKey, user.avatar, placeholder]);
 
   const initials = displayName
     .split(/\s+/)

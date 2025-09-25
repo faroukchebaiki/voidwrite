@@ -62,7 +62,7 @@ export default async function StudioSettings() {
             </p>
           </section>
         )}
-        <SettingsSingle account={{ email, name }} passkeys={passkeys as any} />
+        <SettingsSingle account={{ email, name, id: uid }} passkeys={passkeys as any} />
       </div>
     </main>
   );
