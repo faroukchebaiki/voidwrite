@@ -6,10 +6,20 @@ import { requireStaff } from "@/lib/auth-helpers";
 import { updatePostSchema, updatePostWithAdminSchema } from "@/lib/validation";
 
 export async function GET(_req: Request, context: any) {
+  // Draft/internal post fields should not be public
+  const user = await requireStaff();
+  if (!user) return new NextResponse("Unauthorized", { status: 401 });
+  const uid = (user as any).id as string;
+  const role = (user as any).role as string | undefined;
   const { id: idParam } = (context?.params || {}) as { id: string };
   const id = Number(idParam);
   const [row] = await db.select().from(posts).where(eq(posts.id, id));
   if (!row) return new NextResponse("Not found", { status: 404 });
+  const isOwner = row.authorId === uid;
+  const isAssignee = !!row.assignedTo && row.assignedTo === uid;
+  if (role !== 'admin' && !isOwner && !isAssignee) {
+    return new NextResponse('Forbidden', { status: 403 });
+  }
   return NextResponse.json(row);
 }
 
@@ -48,7 +58,10 @@ export async function PATCH(req: Request, context: any) {
     const trimmed = typeof keywords === "string" ? keywords.trim() : keywords;
     update.seoKeywords = trimmed ? (trimmed as any) : null;
   }
-  if (data.publishedAt !== undefined) update.publishedAt = data.publishedAt ? new Date(data.publishedAt) : null;
+  // Only admins can set or change publishedAt
+  if (role === 'admin' && data.publishedAt !== undefined) {
+    update.publishedAt = data.publishedAt ? new Date(data.publishedAt) : null;
+  }
   if (data.status !== undefined) {
     update.status = data.status;
     if (data.status === 'submitted') update.submittedAt = new Date();
@@ -58,7 +71,16 @@ export async function PATCH(req: Request, context: any) {
     }
   }
 
-  const [updated] = await db.update(posts).set(update).where(eq(posts.id, id)).returning();
+  let updated: typeof posts.$inferSelect | undefined;
+  try {
+    [updated] = await db.update(posts).set(update).where(eq(posts.id, id)).returning();
+  } catch (err: any) {
+    if (err?.code === '23505') {
+      return NextResponse.json({ error: 'Slug already exists' }, { status: 409 });
+    }
+    console.error('Failed to update post', err);
+    return NextResponse.json({ error: 'Failed to update post' }, { status: 500 });
+  }
   if (!updated) return new NextResponse("Not found", { status: 404 });
 
   if (Array.isArray(data.tags)) {
@@ -87,8 +109,23 @@ export async function PATCH(req: Request, context: any) {
 export async function DELETE(_req: Request, context: any) {
   const user = await requireStaff();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
+  const uid = (user as any).id as string;
+  const role = (user as any).role as string | undefined;
   const { id: idParam } = (context?.params || {}) as { id: string };
   const id = Number(idParam);
+
+  const [existing] = await db.select().from(posts).where(eq(posts.id, id));
+  if (!existing) return new NextResponse("Not found", { status: 404 });
+
+  // Admins can delete any post. Editors can delete only their own unassigned drafts.
+  const isAdmin = role === 'admin';
+  const isOwner = existing.authorId === uid;
+  const isDraft = String(existing.status) === 'draft';
+  const isUnassigned = !existing.assignedTo;
+  if (!isAdmin && !(isOwner && isDraft && isUnassigned)) {
+    return new NextResponse('Forbidden', { status: 403 });
+  }
+
   await db.delete(postTags).where(eq(postTags.postId, id));
   await db.delete(posts).where(eq(posts.id, id));
   return new NextResponse(null, { status: 204 });

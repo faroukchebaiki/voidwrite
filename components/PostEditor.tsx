@@ -31,13 +31,13 @@ type PostEditorProps = {
   initial?: any;
   role?: string;
   uid?: string;
-  notes?: PostNote[];
+  comments?: PostNote[];
   tags: TagOption[];
   mode: "create" | "edit";
   initialTags?: string[];
 };
 
-export default function PostEditor({ initial = {}, role, uid, notes: initialNotes = [], tags, mode, initialTags = [] }: PostEditorProps) {
+export default function PostEditor({ initial = {}, role, uid, comments: initialComments = [], tags, mode, initialTags = [] }: PostEditorProps) {
   const router = useRouter();
   const isAdmin = role === "admin";
 
@@ -48,11 +48,12 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
   const [coverImageUrl, setCoverImageUrl] = useState(initial.coverImageUrl || "");
   const [content, setContent] = useState(initial.content || "");
   const [status, setStatus] = useState<string>(String(initial.status || "draft"));
-  const [notes, setNotes] = useState<PostNote[]>(initialNotes || []);
+  const [comments, setComments] = useState<PostNote[]>(initialComments || []);
   useEffect(() => {
-    setNotes(initialNotes || []);
-  }, [initialNotes]);
-  const [noteDraft, setNoteDraft] = useState("");
+    setComments(initialComments || []);
+  }, [initialComments]);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -109,6 +110,54 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
         .replace(/(^-|-$)+/g, ""),
     []
   );
+
+  const authorId = initial.authorId as string | undefined;
+  const assignedToId = initial.assignedTo as string | undefined;
+
+  const canViewComments = useMemo(() => {
+    if (isAdmin) return true;
+    if (!uid) return false;
+    return (!!authorId && authorId === uid) || (!!assignedToId && assignedToId === uid);
+  }, [assignedToId, authorId, isAdmin, uid]);
+
+  const canPostComments = useMemo(() => canViewComments && Boolean(postId), [canViewComments, postId]);
+
+  const onSubmitComment = useCallback(async () => {
+    if (!canViewComments) {
+      toast.error('You do not have access to comment on this post.', { position: 'bottom-center' });
+      return;
+    }
+    if (!postId) {
+      toast.error('Save the post before adding comments.', { position: 'bottom-center' });
+      return;
+    }
+    const trimmed = commentDraft.trim();
+    if (!trimmed) {
+      toast.error('Write a comment before posting.', { position: 'bottom-center' });
+      return;
+    }
+    if (postingComment) return;
+    setPostingComment(true);
+    try {
+      const res = await fetch(`/api/posts/${postId}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: trimmed }),
+      });
+      if (!res.ok) {
+        const message = await res.text().catch(() => 'Failed to post comment');
+        throw new Error(message || 'Failed to post comment');
+      }
+      const created = await res.json();
+      setComments((prev) => [created, ...prev]);
+      setCommentDraft('');
+      toast.success('Comment posted', { position: 'bottom-center' });
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to post comment', { position: 'bottom-center' });
+    } finally {
+      setPostingComment(false);
+    }
+  }, [canViewComments, commentDraft, postId, postingComment]);
 
   const emitActionState = useCallback(
     (canSave: boolean, canPublish: boolean, canAssign: boolean, publishLabel: string, highlightSave: boolean) => {
@@ -339,21 +388,6 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
         const message = await res.text().catch(() => 'Failed to save');
         throw new Error(message || 'Failed to save');
       }
-      if (isAdmin && noteDraft.trim()) {
-        const noteRes = await fetch(`/api/posts/${postId}/notes`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ note: noteDraft.trim() }),
-        });
-        if (noteRes.ok) {
-          const created = await noteRes.json();
-          setNotes((prev) => [created, ...prev]);
-          setNoteDraft('');
-        } else {
-          const msg = await noteRes.text();
-          toast.error(msg || 'Failed to save note', { position: 'bottom-center' });
-        }
-      }
       setSlug(nextSlug);
       toast.success('Post saved', { position: 'bottom-center' });
       markSavedSnapshot();
@@ -365,7 +399,7 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
     } finally {
       setSaving(false);
     }
-  }, [coverImageUrl, content, excerpt, hasContent, hasTitle, isAdmin, markSavedSnapshot, noteDraft, postId, router, saving, selectedTags, slug, slugify, title, seoKeywords]);
+  }, [coverImageUrl, content, excerpt, hasContent, hasTitle, isAdmin, markSavedSnapshot, postId, router, saving, selectedTags, slug, slugify, title, seoKeywords]);
 
   const onPublish = useCallback(async () => {
     if (publishing) return;
@@ -500,7 +534,7 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
     };
   }, [deleteAllowed, hasTitle, isAdmin, loadTeam, onDelete, onPublish, onSave, teamLoaded]);
 
-  const existingNoteList = notes.length > 0;
+  const hasComments = comments.length > 0;
 
   return (
     <div className="space-y-6 px-4 sm:px-6 lg:px-10 max-w-4xl mx-auto">
@@ -651,41 +685,54 @@ export default function PostEditor({ initial = {}, role, uid, notes: initialNote
         </div>
       </div>
 
-      {isAdmin && (
+      {canViewComments && (
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold">Notes</h2>
+          <h2 className="text-sm font-semibold">Comments</h2>
           {postId ? (
-            <>
-              {existingNoteList ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">Add a comment</label>
+                <textarea
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  rows={3}
+                  value={commentDraft}
+                  onChange={(e) => setCommentDraft(e.target.value)}
+                  placeholder={isAdmin ? 'Share feedback with the team' : 'Leave a note for the editors'}
+                  disabled={!canPostComments}
+                />
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    className="rounded border px-3 py-1.5 text-sm"
+                    onClick={onSubmitComment}
+                    disabled={!canPostComments || postingComment || !commentDraft.trim()}
+                  >
+                    {postingComment ? 'Posting…' : 'Post comment'}
+                  </button>
+                </div>
+                {!canPostComments && (
+                  <p className="text-xs text-muted-foreground">Save the post before adding comments.</p>
+                )}
+              </div>
+              {hasComments ? (
                 <ul className="space-y-3">
-                  {notes.map((note) => (
-                    <li key={note.id} className="rounded border px-3 py-2 text-sm">
+                  {comments.map((comment) => (
+                    <li key={comment.id} className="rounded border px-3 py-2 text-sm shadow-sm">
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{note.authorName}</span>
-                        <span>{new Date(note.createdAt).toLocaleString()}</span>
+                        <span className="font-medium text-foreground">{comment.authorName}</span>
+                        <span>{new Date(comment.createdAt).toLocaleString()}</span>
                       </div>
-                      <p className="mt-1 whitespace-pre-wrap">{note.note}</p>
+                      <p className="mt-1 whitespace-pre-wrap leading-snug">{comment.note}</p>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-muted-foreground">No notes yet.</p>
+                <p className="text-sm text-muted-foreground">No comments yet.</p>
               )}
-              <div>
-                <label className="block text-sm mb-1">Add note</label>
-                <textarea
-                  className="w-full border rounded px-3 py-2 text-sm"
-                  rows={4}
-                  value={noteDraft}
-                  onChange={(e) => setNoteDraft(e.target.value)}
-                  placeholder="Share feedback with the author"
-                />
-                <p className="mt-1 text-xs text-muted-foreground">Notes are saved when you click Save.</p>
-              </div>
-            </>
+            </div>
           ) : (
             <div className="rounded border px-3 py-2 text-sm text-muted-foreground">
-              Save the draft first to add administrative notes.
+              Save the draft first to start the conversation.
             </div>
           )}
         </section>

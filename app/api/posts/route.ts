@@ -3,9 +3,12 @@ import { db } from "@/db";
 import { posts, postTags, tags } from "@/db/schema";
 import { desc, inArray } from "drizzle-orm";
 import { createPostSchema } from "@/lib/validation";
-import { requireStaff } from "@/lib/auth-helpers";
+import { requireAdmin, requireStaff } from "@/lib/auth-helpers";
 
 export async function GET() {
+  // This endpoint returns drafts and internal fields; restrict to admins
+  const admin = await requireAdmin();
+  if (!admin) return new NextResponse("Unauthorized", { status: 401 });
   const rows = await db.select().from(posts).orderBy(desc(posts.publishedAt ?? posts.createdAt));
   return NextResponse.json(rows);
 }
@@ -13,6 +16,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const user = await requireStaff();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
+  const role = (user as any).role as string | undefined;
   const body = await req.json();
   const parsed = createPostSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
@@ -20,27 +24,41 @@ export async function POST(req: Request) {
   const keywords = data.seoKeywords?.trim();
 
   const now = new Date();
-  const [created] = await db
-    .insert(posts)
-    .values({
-      title: data.title,
-      slug: data.slug,
-      excerpt: data.excerpt || null,
-      content: data.content,
-      status: data.status,
-      coverImageUrl: data.coverImageUrl || null,
-      seoKeywords: keywords || null,
-      authorId: (user as any).id,
-      createdBy: (user as any).id,
-      assignedTo: null,
-      submittedAt: null,
-      approvedBy: null,
-      approvedAt: null,
-      publishedAt: data.status === "published" ? data.publishedAt ? new Date(data.publishedAt) : now : null,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .returning();
+  let created: typeof posts.$inferSelect | undefined;
+  try {
+    [created] = await db
+      .insert(posts)
+      .values({
+        title: data.title,
+        slug: data.slug,
+        excerpt: data.excerpt || null,
+        content: data.content,
+        // Only admins can create published posts; non-admins always start in draft
+        status: role === 'admin' ? data.status : ('draft' as any),
+        coverImageUrl: data.coverImageUrl || null,
+        seoKeywords: keywords || null,
+        authorId: (user as any).id,
+        createdBy: (user as any).id,
+        assignedTo: null,
+        submittedAt: null,
+        approvedBy: null,
+        approvedAt: null,
+        publishedAt: role === 'admin' && data.status === "published" ? (data.publishedAt ? new Date(data.publishedAt) : now) : null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+  } catch (err: any) {
+    if (err?.code === '23505') {
+      return NextResponse.json({ error: 'Slug already exists' }, { status: 409 });
+    }
+    console.error('Failed to create post', err);
+    return NextResponse.json({ error: 'Failed to create post' }, { status: 500 });
+  }
+
+  if (!created) {
+    return NextResponse.json({ error: 'Failed to create post' }, { status: 500 });
+  }
 
   if (data.tags && data.tags.length > 0) {
     const tagRows = await db.select().from(tags).where(inArray(tags.slug, data.tags));

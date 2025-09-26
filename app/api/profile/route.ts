@@ -57,7 +57,7 @@ export async function PUT(req: Request) {
         .insert(profiles)
         .values({
           userId: uid,
-          role: 'editor',
+          role: 'editor' as any,
           ...payload,
         })
         .returning();

@@ -15,15 +15,11 @@ export async function POST(req: Request) {
   const [existing] = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
   if (existing) return NextResponse.json({ error: "Email already in use" }, { status: 409 });
 
-  // Invite requirement: allow first user without code; all subsequent require a valid, unused invite
-  const existingProfilesInit = await db.select().from(profiles).limit(1);
-  const isFirst = existingProfilesInit.length === 0;
-  if (!isFirst) {
-    if (!inviteCode) return NextResponse.json({ error: "Invitation code required" }, { status: 400 });
-    const [inv] = await db.select().from(invites).where(eq(invites.code, inviteCode));
-    if (!inv) return NextResponse.json({ error: "Invalid invitation code" }, { status: 400 });
-    if (inv.usedBy) return NextResponse.json({ error: "Invitation code already used" }, { status: 400 });
-  }
+  // All signups require a valid, unused invitation code; still detect first user to elevate role.
+  if (!inviteCode) return NextResponse.json({ error: "Invitation code required" }, { status: 400 });
+  const [inv] = await db.select().from(invites).where(eq(invites.code, inviteCode));
+  if (!inv) return NextResponse.json({ error: "Invalid invitation code" }, { status: 400 });
+  if (inv.usedBy) return NextResponse.json({ error: "Invitation code already used" }, { status: 400 });
 
   const [createdUser] = await db
     .insert(users)
@@ -41,12 +37,10 @@ export async function POST(req: Request) {
     .insert(profiles)
     .values({ userId: createdUser.id, role: finalRole as any, passwordHash: hash, isMaster: isFirstAfter });
 
-  if (!isFirst && inviteCode) {
-    await db
-      .update(invites)
-      .set({ usedBy: createdUser.id, usedAt: new Date() as any })
-      .where(eq(invites.code, inviteCode));
-  }
+  await db
+    .update(invites)
+    .set({ usedBy: createdUser.id, usedAt: new Date() as any })
+    .where(eq(invites.code, inviteCode));
 
   return NextResponse.json({ id: createdUser.id, email: createdUser.email }, { status: 201 });
 }

@@ -13,7 +13,7 @@ import {
 
 export type NavItem = { key?: 'dashboard'|'notifications'|'new'|'my'|'all'|'tags'|'pending'|'invite'|'settings'|string; title: string; url: string; icon?: LucideIcon };
 
-export function NavMain({ items }: { items: NavItem[] }) {
+export function NavMain({ items, notificationsUnread = 0 }: { items: NavItem[]; notificationsUnread?: number }) {
   const pathname = usePathname();
 
   // Compute a canonical active key based on route
@@ -47,11 +47,23 @@ export function NavMain({ items }: { items: NavItem[] }) {
         <SidebarMenu>
           {items.map((item, idx) => {
             const isActive = idx === activeIndex;
+            const Icon = item.icon;
+            const showDot = item.key === 'notifications' && notificationsUnread > 0;
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
                   <Link href={item.url}>
-                    {item.icon && <item.icon />}
+                    {Icon && (
+                      <span className="relative inline-flex">
+                        <Icon />
+                        {showDot && (
+                          <span
+                            aria-hidden
+                            className="absolute right-0 top-0 inline-flex size-2 rounded-full bg-red-500"
+                          />
+                        )}
+                      </span>
+                    )}
                     <span>{item.title}</span>
                   </Link>
                 </SidebarMenuButton>

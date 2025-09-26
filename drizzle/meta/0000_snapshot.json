@@ -152,7 +152,7 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "'user'"
+        "default": "'editor'"
         },
         "password_hash": {
           "name": "password_hash",
@@ -706,8 +706,7 @@
       "schema": "public",
       "values": [
         "admin",
-        "editor",
-        "user"
+        "editor"
       ]
     }
   },

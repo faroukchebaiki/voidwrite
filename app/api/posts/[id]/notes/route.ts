@@ -1,17 +1,29 @@
 import { NextResponse } from "next/server";
 import { eq, desc } from "drizzle-orm";
 
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireUser } from "@/lib/auth-helpers";
 import { postNoteSchema } from "@/lib/validation";
 import { db } from "@/db";
-import { postNotes, posts, notifications } from "@/db/schema";
+import { postNotes, posts, notifications, profiles } from "@/db/schema";
 import { users } from "@/db/auth-schema";
 
 export async function GET(_req: Request, context: any) {
-  const admin = await requireAdmin();
-  if (!admin) return new NextResponse("Unauthorized", { status: 401 });
+  const sessionUser = await requireUser();
+  if (!sessionUser) return new NextResponse("Unauthorized", { status: 401 });
+  const uid = (sessionUser as any).id as string;
+  const role = (sessionUser as any).role as string | undefined;
   const { id: idParam } = (context?.params || {}) as { id: string };
   const id = Number(idParam);
+
+  const [post] = await db.select().from(posts).where(eq(posts.id, id));
+  if (!post) return new NextResponse("Not found", { status: 404 });
+
+  const isAdmin = role === 'admin';
+  const isAuthor = post.authorId === uid;
+  const isAssignee = post.assignedTo === uid;
+  if (!isAdmin && !isAuthor && !isAssignee) {
+    return new NextResponse('Forbidden', { status: 403 });
+  }
 
   const notes = await db
     .select({
@@ -39,8 +51,10 @@ export async function GET(_req: Request, context: any) {
 }
 
 export async function POST(req: Request, context: any) {
-  const admin = await requireAdmin();
-  if (!admin) return new NextResponse("Unauthorized", { status: 401 });
+  const sessionUser = await requireUser();
+  if (!sessionUser) return new NextResponse("Unauthorized", { status: 401 });
+  const uid = (sessionUser as any).id as string;
+  const role = (sessionUser as any).role as string | undefined;
   const { id: idParam } = (context?.params || {}) as { id: string };
   const id = Number(idParam);
 
@@ -53,29 +67,68 @@ export async function POST(req: Request, context: any) {
   const [post] = await db.select().from(posts).where(eq(posts.id, id));
   if (!post) return new NextResponse("Not found", { status: 404 });
 
+  const isAdmin = role === 'admin';
+  const isAuthor = post.authorId === uid;
+  const isAssignee = post.assignedTo === uid;
+  if (!isAdmin && !isAuthor && !isAssignee) {
+    return new NextResponse('Forbidden', { status: 403 });
+  }
+
   const noteText = parsed.data.note.trim();
   if (!noteText) {
     return NextResponse.json({ error: "Note cannot be empty" }, { status: 400 });
   }
-
-  const adminId = (admin as any).id as string;
-  const adminName = (admin as any).name || (admin as any).email || "Admin";
+  const [profile] = await db
+    .select({ firstName: profiles.firstName, lastName: profiles.lastName })
+    .from(profiles)
+    .where(eq(profiles.userId, uid));
+  const [actorUser] = await db
+    .select({ name: users.name, email: users.email })
+    .from(users)
+    .where(eq(users.id, uid));
+  const fallbackName = (actorUser?.name || actorUser?.email || '').trim();
+  const [fallbackFirst, ...fallbackRest] = fallbackName ? fallbackName.split(/\s+/) : [];
+  const actorFirstName = profile?.firstName || fallbackFirst || null;
+  const actorLastName = profile?.lastName || (fallbackRest.length ? fallbackRest.join(' ') : null);
+  const actorName = [actorFirstName, actorLastName].filter(Boolean).join(' ') || fallbackName || (isAdmin ? 'Admin' : 'Member');
 
   const [created] = await db
     .insert(postNotes)
     .values({
       postId: id,
-      authorId: adminId,
+      authorId: uid,
       note: noteText,
     })
     .returning();
 
-  if (post.authorId && post.authorId !== adminId) {
-    await db.insert(notifications).values({
-      userId: post.authorId,
-      type: "note" as any,
-      payload: { postId: id, title: post.title, noteId: created.id, note: noteText } as any,
-    });
+  const adminProfiles = await db
+    .select({ userId: profiles.userId })
+    .from(profiles)
+    .where(eq(profiles.role, 'admin' as any));
+  const targetIds = new Set<string>();
+  for (const record of adminProfiles) {
+    const targetId = record.userId as string | null;
+    if (targetId && targetId !== uid) targetIds.add(targetId);
+  }
+  if (post.authorId && post.authorId !== uid) {
+    targetIds.add(post.authorId);
+  }
+
+  const notificationsPayload = {
+    postId: id,
+    title: post.title,
+    noteId: created.id,
+    note: noteText,
+    actorId: uid,
+    actorName,
+    actorFirstName,
+    actorLastName,
+  } as any;
+
+  if (targetIds.size) {
+    await db.insert(notifications).values(
+      Array.from(targetIds).map((userId) => ({ userId, type: 'comment' as any, payload: notificationsPayload }))
+    );
   }
 
   const createdAt = created.createdAt instanceof Date ? created.createdAt.toISOString() : (created.createdAt as any);
@@ -86,7 +139,7 @@ export async function POST(req: Request, context: any) {
       note: created.note,
       createdAt,
       authorId: created.authorId,
-      authorName: adminName,
+      authorName: actorName,
     },
     { status: 201 }
   );

@@ -1,7 +1,7 @@
 import { pgTable, text, timestamp, integer, serial, pgEnum, boolean, primaryKey, uniqueIndex, json } from "drizzle-orm/pg-core";
 
 // Roles for CMS
-export const userRole = pgEnum("user_role", ["admin", "editor", "user"]);
+export const userRole = pgEnum("user_role", ["admin", "editor"]);
 
 // Metadata for users managed by Auth.js via PG Adapter lives in its own tables.
 // We keep CMS-specific profile fields in a separate table keyed by the Auth.js user id (text).

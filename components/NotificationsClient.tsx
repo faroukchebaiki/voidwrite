@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -19,6 +20,7 @@ export type NotificationRow = {
 };
 
 export default function NotificationsClient({ initial }: { initial: NotificationRow[] }) {
+  const router = useRouter();
   const [items, setItems] = useState<NotificationRow[]>(initial);
   const unreadCount = useMemo(() => items.filter((n) => !n.readAt).length, [items]);
 
@@ -26,7 +28,7 @@ export default function NotificationsClient({ initial }: { initial: Notification
     setItems(initial);
   }, [initial]);
 
-  const markRead = async (ids: number[]) => {
+  const markRead = useCallback(async (ids: number[]) => {
     if (ids.length === 0) return;
     setItems((prev) => prev.map((n) => (ids.includes(n.id) ? { ...n, readAt: new Date().toISOString() } : n)));
     try {
@@ -38,7 +40,14 @@ export default function NotificationsClient({ initial }: { initial: Notification
     } catch {
       // ignore; optimistic update
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const unreadIds = initial.filter((n) => !n.readAt).map((n) => n.id);
+    if (unreadIds.length > 0) {
+      void markRead(unreadIds);
+    }
+  }, [initial, markRead]);
 
   return (
     <div className="space-y-4">
@@ -58,24 +67,57 @@ export default function NotificationsClient({ initial }: { initial: Notification
           const isRead = Boolean(notification.readAt);
           const payload = notification.payload || {};
           const href = payload.postId ? `/studio/posts/${payload.postId}` : null;
+          const actorFullName = (() => {
+            const first = (payload.actorFirstName as string | undefined)?.toString().trim();
+            const last = (payload.actorLastName as string | undefined)?.toString().trim();
+            const combined = [first, last].filter(Boolean).join(' ');
+            return combined || (payload.actorName as string | undefined) || 'Member';
+          })();
           const primary = (() => {
             switch (notification.type) {
               case 'submission':
-                return `Submitted post by ${payload.authorName || 'Contributor'}`;
+                return `Submission by ${actorFullName}`;
               case 'approval':
                 return `Post approved: ${payload.title || 'Untitled'}`;
               case 'assignment':
-                return `Assigned post: ${payload.title || 'Untitled'}`;
+                return `Assignment by ${actorFullName}`;
+              case 'comment':
+                return `Comment from ${actorFullName}`;
               default:
                 return notification.type;
             }
           })();
-          const secondary = payload.title ? `Title: ${payload.title}` : null;
+          const secondaryLines: string[] = [];
+          if (payload.title) secondaryLines.push(`Title: ${payload.title}`);
+          if (notification.type === 'assignment' && payload.assignedToName) {
+            secondaryLines.push(`Assigned to: ${payload.assignedToName}`);
+          }
+          if (notification.type === 'assignment' && payload.note) {
+            secondaryLines.push(`Note: ${payload.note}`);
+          }
+          if (notification.type === 'comment' && payload.note) {
+            secondaryLines.push(`Comment: ${payload.note}`);
+          }
+          const secondary = secondaryLines.length ? secondaryLines.join('\n') : null;
           const distance = dayjs(notification.createdAt).isValid()
             ? dayjs(notification.createdAt).fromNow()
             : "";
 
-          const Card = (
+          const handleNavigate = async () => {
+            if (!href) return;
+            await markRead([notification.id]);
+            router.push(href);
+          };
+
+          const handleKeyDown = async (event: React.KeyboardEvent<HTMLDivElement>) => {
+            if (!href) return;
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              await handleNavigate();
+            }
+          };
+
+          const CardContent = (
             <div
               className={`flex flex-col gap-2 p-4 transition-colors ${isRead ? 'bg-background' : 'bg-accent/20'}`}
             >
@@ -85,7 +127,11 @@ export default function NotificationsClient({ initial }: { initial: Notification
                     {!isRead && <span className="inline-flex size-2 rounded-full bg-primary" aria-hidden />}
                     <p className="text-sm font-medium text-foreground">{primary}</p>
                   </div>
-                  {secondary && <p className="text-xs text-muted-foreground">{secondary}</p>}
+                  {secondary && (
+                    <p className="whitespace-pre-wrap text-xs text-muted-foreground">
+                      {secondary}
+                    </p>
+                  )}
                 </div>
                 <span className="text-xs text-muted-foreground whitespace-nowrap">{distance}</span>
               </div>
@@ -93,7 +139,10 @@ export default function NotificationsClient({ initial }: { initial: Notification
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => void markRead([notification.id])}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void markRead([notification.id]);
+                  }}
                   disabled={isRead}
                   className="text-xs"
                 >
@@ -104,7 +153,10 @@ export default function NotificationsClient({ initial }: { initial: Notification
                   <Link
                     href={href}
                     className="text-xs font-medium text-primary hover:text-primary/80"
-                    onClick={() => void markRead([notification.id])}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void markRead([notification.id]);
+                    }}
                   >
                     Open post
                   </Link>
@@ -115,14 +167,21 @@ export default function NotificationsClient({ initial }: { initial: Notification
 
           if (href) {
             return (
-              <Link key={notification.id} href={href} className="block" onClick={() => void markRead([notification.id])}>
-                {Card}
-              </Link>
+              <div
+                key={notification.id}
+                role="link"
+                tabIndex={0}
+                className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                onClick={handleNavigate}
+                onKeyDown={handleKeyDown}
+              >
+                {CardContent}
+              </div>
             );
           }
           return (
             <div key={notification.id}>
-              {Card}
+              {CardContent}
             </div>
           );
         })}

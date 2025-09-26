@@ -18,7 +18,7 @@ export default async function NewPostPage() {
       role={role}
       uid={uid}
       tags={availableTags.map((t) => ({ slug: t.slug, name: t.name || t.slug }))}
-      notes={[]}
+      comments={[]}
       initial={{ status: 'draft', assignedTo: null, assignedToName: null, coverImageUrl: null, adminNote: null }}
       initialTags={[]}
     />
