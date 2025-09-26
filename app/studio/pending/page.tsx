@@ -2,14 +2,19 @@ import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { posts } from "@/db/schema";
 import { users } from "@/db/auth-schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import PendingClient from "./client";
 
 export default async function PendingPage() {
   const session = await auth();
   const role = (session?.user as any)?.role as string | undefined;
   if (role !== 'admin') return null;
-  const rows = await db.select({ p: posts, a: users }).from(posts).leftJoin(users, eq(users.id, posts.authorId)).where(eq(posts.status as any, 'submitted' as any)).orderBy(desc(posts.submittedAt));
+  const rows = await db
+    .select({ p: posts, a: users })
+    .from(posts)
+    .leftJoin(users, eq(users.id, posts.authorId))
+    .where(and(eq(posts.status as any, 'submitted' as any), eq(posts.trashed as any, false as any)))
+    .orderBy(desc(posts.submittedAt));
   const list = rows.map((r:any)=>({
     id: r.p.id,
     title: r.p.title,

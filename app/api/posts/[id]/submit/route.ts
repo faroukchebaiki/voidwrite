@@ -14,7 +14,17 @@ export async function POST(_req: Request, context: any) {
   const [p] = await db.select().from(posts).where(eq(posts.id, id));
   if (!p) return new NextResponse("Not found", { status: 404 });
   if (!(p.authorId === uid || p.assignedTo === uid)) return new NextResponse('Forbidden', { status: 403 });
-  const [updated] = await db.update(posts).set({ status: 'submitted' as any, submittedAt: new Date(), updatedAt: new Date() }).where(eq(posts.id, id)).returning();
+  const [updated] = await db
+    .update(posts)
+    .set({
+      status: 'submitted' as any,
+      submittedAt: new Date(),
+      updatedAt: new Date(),
+      trashed: false,
+      trashedAt: null,
+    })
+    .where(eq(posts.id, id))
+    .returning();
   const [profile] = await db
     .select({ firstName: profiles.firstName, lastName: profiles.lastName })
     .from(profiles)

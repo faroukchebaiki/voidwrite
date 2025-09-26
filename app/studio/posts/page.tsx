@@ -24,6 +24,7 @@ export default async function StudioPosts({ searchParams }: any) {
 
   // Build SQL filters for admin
   const wheres = [] as any[];
+  wheres.push(eq(posts.trashed as any, false as any));
   if (draftOnly) wheres.push(eq(posts.status as any, 'draft' as any));
   if (statusParam && statusParam !== 'all') wheres.push(eq(posts.status as any, statusParam as any));
   if (!mine && authorParam) wheres.push(eq(posts.authorId, authorParam));

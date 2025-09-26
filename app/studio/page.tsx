@@ -1,11 +1,15 @@
 import { db } from "@/db";
 import { posts, dailyPostViews } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { auth } from "@/auth-app";
 
 export default async function StudioHome() {
   const session = await auth();
   const role = (session?.user as any)?.role as string | undefined;
-  const allPosts = await db.select().from(posts);
+  const allPosts = await db
+    .select()
+    .from(posts)
+    .where(eq(posts.trashed as any, false as any));
   const totalVisitors = allPosts.reduce((acc: number, p: any) => acc + Number(p.views||0), 0);
   const totalPosts = allPosts.length;
   const today = new Date().toISOString().slice(0,10);

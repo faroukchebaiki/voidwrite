@@ -24,6 +24,8 @@ export async function POST(req: Request, context: any) {
   const update: Record<string, any> = {
     assignedTo,
     updatedAt: new Date(),
+    trashed: false,
+    trashedAt: null,
   };
   let trimmedNote: string | null = null;
   if (note !== undefined) {

@@ -21,6 +21,8 @@ export async function POST(_req: Request, context: any) {
       approvedAt: new Date(),
       publishedAt: p.publishedAt || new Date(),
       updatedAt: new Date(),
+      trashed: false,
+      trashedAt: null,
     })
     .where(eq(posts.id, id))
     .returning();

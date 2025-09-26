@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { usePathname } from "next/navigation"
-import { BellIcon, FileTextIcon, LayoutDashboardIcon, ListIcon, PlusCircleIcon, Tag as TagIcon, AlertCircle } from "lucide-react"
+import { BellIcon, FileTextIcon, LayoutDashboardIcon, ListIcon, PlusCircleIcon, Tag as TagIcon, AlertCircle, Trash2Icon } from "lucide-react"
 
 import { NavMain, type NavItem } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -19,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'pending', title: "Pending", url: "/studio/pending", icon: AlertCircle },
   { key: 'my', title: "My Posts", url: "/studio/my-blogs", icon: ListIcon },
   { key: 'all', title: "All Posts", url: "/studio/posts", icon: FileTextIcon },
+  { key: 'trash', title: "Trash", url: "/studio/trash", icon: Trash2Icon },
   { key: 'tags', title: "Tags", url: "/studio/tags", icon: TagIcon },
   { key: 'invite', title: "Invite", url: "/studio/invite", icon: PlusCircleIcon },
 ] as const;

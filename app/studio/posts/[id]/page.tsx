@@ -14,11 +14,13 @@ export default async function EditPostPage({ params }: any) {
   const session = await auth();
   const role = (session?.user as any)?.role as string | undefined;
   const uid = (session?.user as any)?.id as string | undefined;
+  const isTrashed = Boolean((post as any).trashed);
   if (!uid) notFound();
   const isAdmin = role === 'admin';
   const isAuthor = post.authorId === uid;
   const isAssignee = post.assignedTo === uid;
   if (!isAdmin && !isAuthor && !isAssignee) notFound();
+  if (isTrashed && !isAdmin) notFound();
   let assignee: { id: string; label: string; image?: string | null } | null = null;
   if ((post as any).assignedTo) {
     const [u] = await db.select().from(users).where(eq(users.id, (post as any).assignedTo as any));

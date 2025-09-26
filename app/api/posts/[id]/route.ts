@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { del } from "@vercel/blob";
 import { db } from "@/db";
 import { posts, postTags, tags, notifications } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -69,6 +70,10 @@ export async function PATCH(req: Request, context: any) {
       update.approvedBy = uid; update.approvedAt = new Date();
       if (!existing.publishedAt) update.publishedAt = new Date();
     }
+    if (role === 'admin' && data.status !== 'draft' && existing.trashed) {
+      update.trashed = false;
+      update.trashedAt = null;
+    }
   }
 
   let updated: typeof posts.$inferSelect | undefined;
@@ -107,12 +112,15 @@ export async function PATCH(req: Request, context: any) {
 }
 
 export async function DELETE(_req: Request, context: any) {
+  const req = _req;
   const user = await requireStaff();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
   const uid = (user as any).id as string;
   const role = (user as any).role as string | undefined;
   const { id: idParam } = (context?.params || {}) as { id: string };
   const id = Number(idParam);
+  const url = new URL(req.url);
+  const hard = url.searchParams.get('hard') === '1';
 
   const [existing] = await db.select().from(posts).where(eq(posts.id, id));
   if (!existing) return new NextResponse("Not found", { status: 404 });
@@ -126,7 +134,38 @@ export async function DELETE(_req: Request, context: any) {
     return new NextResponse('Forbidden', { status: 403 });
   }
 
-  await db.delete(postTags).where(eq(postTags.postId, id));
-  await db.delete(posts).where(eq(posts.id, id));
-  return new NextResponse(null, { status: 204 });
+  if (hard) {
+    if (!isAdmin) return new NextResponse('Forbidden', { status: 403 });
+    await db.delete(postTags).where(eq(postTags.postId, id));
+    await db.delete(posts).where(eq(posts.id, id));
+    if (existing.coverImageUrl) {
+      try {
+        const parsed = new URL(existing.coverImageUrl);
+        if (parsed.hostname.endsWith('.blob.vercel-storage.com') || parsed.hostname === 'public.blob.vercel-storage.com') {
+          await del(existing.coverImageUrl);
+        }
+      } catch {}
+    }
+    return new NextResponse(null, { status: 204 });
+  }
+
+  if (existing.trashed) {
+    return new NextResponse(null, { status: 204 });
+  }
+
+  const now = new Date();
+  const softUpdate: any = {
+    trashed: true,
+    trashedAt: now,
+    updatedAt: now,
+    status: 'draft' as any,
+    assignedTo: null,
+    submittedAt: null,
+    approvedBy: null,
+    approvedAt: null,
+    publishedAt: null,
+  };
+
+  await db.update(posts).set(softUpdate).where(eq(posts.id, id));
+  return NextResponse.json({ trashed: true }, { status: 200 });
 }

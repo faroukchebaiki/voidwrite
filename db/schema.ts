@@ -45,6 +45,8 @@ export const posts = pgTable("posts", {
   publishedAt: timestamp("published_at", { withTimezone: false }),
   createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
+  trashed: boolean("trashed").notNull().default(false),
+  trashedAt: timestamp("trashed_at", { withTimezone: false }),
 }, (table) => ({
   slugIdx: uniqueIndex("posts_slug_unique").on(table.slug),
 }));

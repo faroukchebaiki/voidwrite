@@ -25,6 +25,7 @@ export function NavMain({ items, notificationsUnread = 0 }: { items: NavItem[]; 
     if (pathname.startsWith('/studio/posts/') && pathname !== '/studio/posts/new') return 'all';
     if (pathname === '/studio/my-blogs') return 'my';
     if (pathname === '/studio/posts') return 'all';
+    if (pathname === '/studio/trash') return 'trash';
     if (pathname === '/studio/pending') return 'pending';
     if (pathname === '/studio/tags') return 'tags';
     if (pathname === '/studio/invite') return 'invite';

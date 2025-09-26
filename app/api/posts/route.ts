@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { posts, postTags, tags } from "@/db/schema";
-import { desc, inArray } from "drizzle-orm";
+import { desc, inArray, eq } from "drizzle-orm";
 import { createPostSchema } from "@/lib/validation";
 import { requireAdmin, requireStaff } from "@/lib/auth-helpers";
 
@@ -17,7 +17,11 @@ export async function GET() {
   // This endpoint returns drafts and internal fields; restrict to admins
   const admin = await requireAdmin();
   if (!admin) return new NextResponse("Unauthorized", { status: 401 });
-  const rows = await db.select().from(posts).orderBy(desc(posts.publishedAt ?? posts.createdAt));
+  const rows = await db
+    .select()
+    .from(posts)
+    .where(eq(posts.trashed, false))
+    .orderBy(desc(posts.publishedAt ?? posts.createdAt));
   return NextResponse.json(rows);
 }
 
@@ -60,9 +64,11 @@ export async function POST(req: Request) {
         approvedBy: null,
         approvedAt: null,
         publishedAt: role === 'admin' && data.status === "published" ? (data.publishedAt ? new Date(data.publishedAt) : now) : null,
-        createdAt: now,
-        updatedAt: now,
-      })
+      createdAt: now,
+      updatedAt: now,
+      trashed: false,
+      trashedAt: null,
+    })
       .returning();
   } catch (err: any) {
     if (err?.code === '23505') {

@@ -52,11 +52,15 @@ export default function PostEditor({ initial = {}, role, uid, comments: initialC
   const [status, setStatus] = useState<string>(String(initial.status || "draft"));
   const [comments, setComments] = useState<PostNote[]>(initialComments || []);
   const [visibleCount, setVisibleCount] = useState(Math.min(10, initialComments.length || 10));
+  const [isTrashed, setIsTrashed] = useState(Boolean(initial.trashed));
   useEffect(() => {
     const next = initialComments || [];
     setComments(next);
     setVisibleCount(Math.min(10, next.length || 10));
   }, [initialComments]);
+  useEffect(() => {
+    setIsTrashed(Boolean(initial.trashed));
+  }, [initial.trashed]);
   const [commentDraft, setCommentDraft] = useState("");
   const [postingComment, setPostingComment] = useState(false);
 
@@ -444,15 +448,27 @@ export default function PostEditor({ initial = {}, role, uid, comments: initialC
 
   const onDelete = useCallback(async () => {
     if (!deleteAllowed || !postId) return;
-    if (!confirm("Delete this post?")) return;
-    const res = await fetch(`/api/posts/${postId}`, { method: "DELETE" });
-    if (res.ok) {
-      toast.success("Post deleted", { position: "bottom-center" });
-      location.href = "/studio/posts";
-    } else {
-      toast.error("Failed to delete", { position: "bottom-center" });
+    const hardDelete = Boolean(isTrashed && isAdmin);
+    const promptMessage = hardDelete
+      ? "Permanently delete this post? This cannot be undone."
+      : "Move this post to the trash?";
+    if (!confirm(promptMessage)) return;
+    const endpoint = hardDelete ? `/api/posts/${postId}?hard=1` : `/api/posts/${postId}`;
+    try {
+      const res = await fetch(endpoint, { method: "DELETE" });
+      if (!res.ok) {
+        const message = await res.text().catch(() => "");
+        throw new Error(message || "Failed to delete");
+      }
+      toast.success(hardDelete ? "Post permanently deleted" : "Post moved to trash", {
+        position: "bottom-center",
+      });
+      const next = hardDelete || isAdmin ? "/studio/trash" : "/studio/my-blogs";
+      location.href = next;
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete", { position: "bottom-center" });
     }
-  }, [deleteAllowed, postId]);
+  }, [deleteAllowed, postId, isAdmin, isTrashed]);
 
   const onAssignToUser = useCallback(async () => {
     if (!selectedAssignee) {

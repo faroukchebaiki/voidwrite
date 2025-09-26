@@ -20,6 +20,7 @@ export default async function MyBlogsPage({ searchParams }: any) {
   // Build SQL filters
   const userFilter = or(eq(posts.authorId, String(uid)), eq(posts.assignedTo as any, String(uid)));
   const wheres = [userFilter] as any[];
+  wheres.push(eq(posts.trashed as any, false as any));
   if (draftOnly) wheres.push(eq(posts.status as any, 'draft' as any));
   if (statusParam && statusParam !== 'all') wheres.push(eq(posts.status as any, statusParam as any));
   let assigneeFilter: any = null;

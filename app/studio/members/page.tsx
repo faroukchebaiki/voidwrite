@@ -2,7 +2,7 @@ import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { users } from "@/db/auth-schema";
 import { profiles, posts } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import Link from "next/link";
 
 type Member = {
@@ -26,7 +26,7 @@ export default async function MembersPage() {
   const counts = await db
     .select({ authorId: posts.authorId, cnt: sql<number>`count(*)` })
     .from(posts)
-    .where(eq(posts.status as any, "published" as any))
+    .where(and(eq(posts.status as any, "published" as any), eq(posts.trashed as any, false as any)))
     .groupBy(posts.authorId);
   const countMap = new Map<string, number>(counts.map((r: any) => [r.authorId as string, Number(r.cnt)]));
 

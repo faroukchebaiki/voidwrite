@@ -2,7 +2,7 @@ import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { users } from "@/db/auth-schema";
 import { posts } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import AdminControls from "@/components/AdminControls";
@@ -14,7 +14,11 @@ export default async function MemberProfile({ params }: any) {
   const { id } = await params;
   const [u] = await db.select().from(users).where(eq(users.id, id));
   if (!u) redirect("/studio/members");
-  const authored = await db.select().from(posts).where(eq(posts.authorId, id)).orderBy(desc(posts.updatedAt));
+  const authored = await db
+    .select()
+    .from(posts)
+    .where(and(eq(posts.authorId, id), eq(posts.trashed as any, false as any)))
+    .orderBy(desc(posts.updatedAt));
   const drafts = authored.filter((p: any) => String(p.status) === "draft");
   const published = authored.filter((p: any) => String(p.status) === "published");
   const name = u.name || (u.email ? u.email.split("@")[0] : "User");

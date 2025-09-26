@@ -19,7 +19,7 @@ export default async function NewPostPage() {
       uid={uid}
       tags={availableTags.map((t) => ({ slug: t.slug, name: t.name || t.slug }))}
       comments={[]}
-      initial={{ status: 'draft', assignedTo: null, assignedToName: null, coverImageUrl: null, adminNote: null }}
+      initial={{ status: 'draft', assignedTo: null, assignedToName: null, coverImageUrl: null, adminNote: null, trashed: false }}
       initialTags={[]}
     />
   );

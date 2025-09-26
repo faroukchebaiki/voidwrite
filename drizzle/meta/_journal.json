@@ -57,6 +57,13 @@
       "when": 1758082062000,
       "tag": "0007_remove_user_role",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1758084000000,
+      "tag": "0008_add_posts_trash",
+      "breakpoints": true
     }
   ]
 }
