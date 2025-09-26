@@ -126,9 +126,13 @@ export async function POST(req: Request, context: any) {
   } as any;
 
   if (targetIds.size) {
-    await db.insert(notifications).values(
-      Array.from(targetIds).map((userId) => ({ userId, type: 'comment' as any, payload: notificationsPayload }))
-    );
+    try {
+      await db.insert(notifications).values(
+        Array.from(targetIds).map((userId) => ({ userId, type: 'comment' as any, payload: notificationsPayload }))
+      );
+    } catch (error) {
+      console.error('Failed to enqueue comment notifications', error);
+    }
   }
 
   const createdAt = created.createdAt instanceof Date ? created.createdAt.toISOString() : (created.createdAt as any);
