@@ -73,29 +73,32 @@ export default function NotificationsClient({ initial }: { initial: Notification
             const combined = [first, last].filter(Boolean).join(' ');
             return combined || (payload.actorName as string | undefined) || 'Member';
           })();
+          const payloadType = (payload.kind as string | undefined) ?? notification.type;
           const primary = (() => {
-            switch (notification.type) {
+            switch (payloadType) {
               case 'submission':
                 return `Submission by ${actorFullName}`;
               case 'approval':
-                return `Post approved: ${payload.title || 'Untitled'}`;
+                return `Post approved by ${actorFullName}`;
               case 'assignment':
                 return `Assignment by ${actorFullName}`;
               case 'comment':
                 return `Comment from ${actorFullName}`;
+              case 'note':
+                return `Note from ${actorFullName}`;
               default:
                 return notification.type;
             }
           })();
           const secondaryLines: string[] = [];
           if (payload.title) secondaryLines.push(`Title: ${payload.title}`);
-          if (notification.type === 'assignment' && payload.assignedToName) {
+          if (payloadType === 'assignment' && payload.assignedToName) {
             secondaryLines.push(`Assigned to: ${payload.assignedToName}`);
           }
-          if (notification.type === 'assignment' && payload.note) {
+          if (payloadType === 'assignment' && payload.note) {
             secondaryLines.push(`Note: ${payload.note}`);
           }
-          if (notification.type === 'comment' && payload.note) {
+          if (payloadType === 'comment' && payload.note) {
             secondaryLines.push(`Comment: ${payload.note}`);
           }
           const secondary = secondaryLines.length ? secondaryLines.join('\n') : null;

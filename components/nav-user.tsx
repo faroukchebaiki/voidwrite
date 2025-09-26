@@ -34,6 +34,10 @@ export function NavUser({
   const placeholder = "https://github.com/shadcn.png";
   const [avatar, setAvatar] = useState<string>(user.avatar || placeholder);
   const storageKey = user.id ? `profile_avatar_url_${user.id}` : null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   useEffect(() => {
     const base = user.avatar || placeholder;
     setAvatar(base);
@@ -60,6 +64,10 @@ export function NavUser({
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('') || 'VW';
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <SidebarMenu>

@@ -32,6 +32,7 @@ export default async function EditPostPage({ params }: any) {
       authorId: postNotes.authorId,
       authorName: users.name,
       authorEmail: users.email,
+      authorImage: users.image,
     })
     .from(postNotes)
     .leftJoin(users, eq(users.id, postNotes.authorId))
@@ -44,6 +45,7 @@ export default async function EditPostPage({ params }: any) {
     createdAt: n.createdAt?.toISOString?.() || (n.createdAt as any),
     authorId: n.authorId,
     authorName: n.authorName || n.authorEmail || "Unknown",
+    authorImage: n.authorImage || null,
   }));
 
   const tagRows = await db

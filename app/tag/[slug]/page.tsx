@@ -1,13 +1,22 @@
 import { db } from "@/db";
-import { posts, tags, postTags } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { posts, tags, postTags, profiles } from "@/db/schema";
+import { users } from "@/db/auth-schema";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { summarizeExcerpt } from "@/lib/text";
-import { Tag as TagIcon, ChevronRight } from "lucide-react";
+import { Tag as TagIcon, ChevronRight, ArrowRight } from "lucide-react";
 import StayInLoopCard from "@/components/articles/StayInLoopCard";
 import BrowseTopicsCard from "@/components/articles/BrowseTopicsCard";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { siteConfig } from "@/site";
 
 export const revalidate = 60;
 export const dynamic = 'force-dynamic';
@@ -15,6 +24,17 @@ export const dynamic = 'force-dynamic';
 export async function generateStaticParams() {
   // Defer to runtime
   return [];
+}
+
+function toTitleCase(input: string | null | undefined): string {
+  if (!input) return '';
+  return input
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(' ')
+    .trim();
 }
 
 export async function generateMetadata({ params }: any) {
@@ -29,11 +49,38 @@ export default async function TagPage({ params }: any) {
   const [tag] = await db.select().from(tags).where(eq(tags.slug, slug));
   if (!tag) notFound();
   const joins = await db
-    .select({ p: posts })
+    .select({ post: posts })
     .from(postTags)
     .innerJoin(posts, eq(posts.id, postTags.postId))
-    .where(and(eq(postTags.tagId, tag.id), eq(posts.status, "published" as any)));
-  const list = joins.map((j) => j.p);
+    .where(and(eq(postTags.tagId, tag.id), eq(posts.status, "published" as any)))
+    .orderBy(sql`coalesce(${posts.publishedAt}, ${posts.createdAt}) desc`);
+  const list = joins.map((j) => j.post);
+
+  const authorIds = Array.from(new Set(list.map((p) => p.authorId).filter(Boolean))) as string[];
+  let authorProfiles: { userId: string; firstName: string | null; lastName: string | null }[] = [];
+  let authorUsers: { id: string; name: string | null; email: string | null }[] = [];
+  if (authorIds.length) {
+    authorProfiles = await db
+      .select({ userId: profiles.userId, firstName: profiles.firstName, lastName: profiles.lastName })
+      .from(profiles)
+      .where(inArray(profiles.userId, authorIds));
+    authorUsers = await db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(inArray(users.id, authorIds));
+  }
+  const authorNameMap = new Map<string, string>();
+  for (const profile of authorProfiles) {
+    const formatted = toTitleCase([profile.firstName, profile.lastName].filter(Boolean).join(' '));
+    if (formatted) authorNameMap.set(profile.userId, formatted);
+  }
+  for (const user of authorUsers) {
+    if (authorNameMap.has(user.id)) continue;
+    const formatted = toTitleCase(user.name || '') || user.email || '';
+    if (formatted) authorNameMap.set(user.id, formatted);
+  }
+
+  const numberFormatter = new Intl.NumberFormat();
   const allTags = await db.select().from(tags).orderBy(sql`${tags.name}`);
   const remoteHosts = new Set(['public.blob.vercel-storage.com', 'p06e0neae38vv52o.public.blob.vercel-storage.com']);
 
@@ -47,26 +94,35 @@ export default async function TagPage({ params }: any) {
       <div className="grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
         <section className="space-y-6">
           {list.map((p) => {
-            const excerptPreview = summarizeExcerpt(p.excerpt);
+            const publishedDate = p.publishedAt ? new Date(p.publishedAt) : p.createdAt ? new Date(p.createdAt) : null;
+            const dateLabel = publishedDate?.toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            });
+            const displayDate = dateLabel ?? 'Coming soon';
             const imageSrc = (() => {
               if (p.coverImageUrl) {
                 if (p.coverImageUrl.startsWith('/')) return p.coverImageUrl;
-              try {
-                const url = new URL(p.coverImageUrl);
-                if (remoteHosts.has(url.hostname)) return p.coverImageUrl;
-              } catch {
-                return '/image.png';
+                try {
+                  const url = new URL(p.coverImageUrl);
+                  if (remoteHosts.has(url.hostname)) return p.coverImageUrl;
+                } catch {
+                  return '/image.png';
+                }
               }
-            }
-            return '/image.png';
-          })();
+              return '/image.png';
+            })();
+            const excerptPreview = summarizeExcerpt(p.excerpt);
+            const authorName = authorNameMap.get(p.authorId) || siteConfig.title;
+
             return (
               <Link
                 key={p.id}
                 href={`/posts/${p.slug}`}
                 className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2"
               >
-                <article className="font-roboto overflow-hidden rounded-xl border border-border/60 p-0 shadow-none transition-transform duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-xl">
+                <Card className="font-roboto overflow-hidden border border-border/60 p-0 shadow-none transition-transform duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-xl">
                   <div className="relative h-48 w-full overflow-hidden sm:h-56 lg:h-60">
                     <Image
                       src={imageSrc}
@@ -74,31 +130,46 @@ export default async function TagPage({ params }: any) {
                       fill
                       sizes="(min-width: 1280px) 640px, (min-width: 1024px) 520px, (min-width: 640px) 60vw, 100vw"
                       className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                      priority={false}
                     />
                   </div>
-                  <div className="flex flex-col gap-5 px-6 py-6">
-                    <h2 className="text-2xl font-semibold leading-snug text-foreground transition-colors duration-200 group-hover:text-primary sm:text-3xl">
-                      {p.title}
-                    </h2>
-                    {excerptPreview ? (
-                      <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-                        {excerptPreview}
-                      </p>
-                    ) : null}
+                  <div className="flex flex-col bg-card">
+                    <div className="flex flex-col gap-5 px-6 py-6">
+                      <div className="flex flex-wrap items-center gap-2 text-[0.72rem] uppercase tracking-[0.18em] text-muted-foreground">
+                        <span>{displayDate}</span>
+                        <span className="hidden sm:inline">•</span>
+                        <span>{numberFormatter.format(p.views ?? 0)} views</span>
+                      </div>
+                      <h2 className="text-2xl font-semibold leading-snug text-foreground transition-colors duration-200 group-hover:text-primary sm:text-3xl">
+                        {p.title}
+                      </h2>
+                      {excerptPreview ? (
+                        <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+                          {excerptPreview}
+                        </p>
+                      ) : null}
+                    </div>
+                    <CardFooter className="border-t border-border/60 bg-card/80 px-6 py-4 pt-4 text-[0.72rem] uppercase tracking-[0.18em] text-muted-foreground justify-between">
+                      <span>{authorName}</span>
+                      <span className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-transform duration-200 group-hover:translate-x-1">
+                        Read article
+                        <ArrowRight className="size-4" />
+                      </span>
+                    </CardFooter>
                   </div>
-                </article>
+                </Card>
               </Link>
             );
           })}
           {list.length === 0 && (
-            <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/60 p-8 text-center">
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold text-foreground">No posts found</h2>
-                <p className="text-sm leading-relaxed text-muted-foreground">
+            <Card className="border-dashed text-center text-sm text-muted-foreground">
+              <CardHeader>
+                <CardTitle className="text-lg">No posts found</CardTitle>
+                <CardDescription>
                   Try exploring another tag or check back soon—new stories land regularly.
-                </p>
-              </div>
-            </div>
+                </CardDescription>
+              </CardHeader>
+            </Card>
           )}
         </section>
         <aside className="space-y-6">

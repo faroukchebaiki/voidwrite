@@ -5,6 +5,14 @@ import { desc, inArray } from "drizzle-orm";
 import { createPostSchema } from "@/lib/validation";
 import { requireAdmin, requireStaff } from "@/lib/auth-helpers";
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
+
 export async function GET() {
   // This endpoint returns drafts and internal fields; restrict to admins
   const admin = await requireAdmin();
@@ -23,16 +31,24 @@ export async function POST(req: Request) {
   const data = parsed.data;
   const keywords = data.seoKeywords?.trim();
 
+  const rawTitle = (data.title ?? '').toString();
+  const rawSlug = (data.slug ?? '').toString();
+  const rawContent = (data.content ?? '').toString();
+  const title = rawTitle;
+  let slug = rawSlug.trim() || slugify(rawTitle);
+  if (!slug) slug = `draft-${Date.now().toString(36)}`;
+  const content = rawContent;
+
   const now = new Date();
   let created: typeof posts.$inferSelect | undefined;
   try {
     [created] = await db
       .insert(posts)
       .values({
-        title: data.title,
-        slug: data.slug,
+        title,
+        slug,
         excerpt: data.excerpt || null,
-        content: data.content,
+        content,
         // Only admins can create published posts; non-admins always start in draft
         status: role === 'admin' ? data.status : ('draft' as any),
         coverImageUrl: data.coverImageUrl || null,

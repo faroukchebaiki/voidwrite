@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { IMAGE_UPLOAD_MAX_BYTES } from "@/lib/uploads";
 
 import RichEditor from "@/components/RichEditor";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type TeamMember = {
   id: string;
@@ -23,6 +24,7 @@ type PostNote = {
   createdAt: string;
   authorId: string;
   authorName: string;
+  authorImage?: string | null;
 };
 
 type TagOption = { slug: string; name: string };
@@ -49,8 +51,11 @@ export default function PostEditor({ initial = {}, role, uid, comments: initialC
   const [content, setContent] = useState(initial.content || "");
   const [status, setStatus] = useState<string>(String(initial.status || "draft"));
   const [comments, setComments] = useState<PostNote[]>(initialComments || []);
+  const [visibleCount, setVisibleCount] = useState(Math.min(10, initialComments.length || 10));
   useEffect(() => {
-    setComments(initialComments || []);
+    const next = initialComments || [];
+    setComments(next);
+    setVisibleCount(Math.min(10, next.length || 10));
   }, [initialComments]);
   const [commentDraft, setCommentDraft] = useState("");
   const [postingComment, setPostingComment] = useState(false);
@@ -83,7 +88,6 @@ export default function PostEditor({ initial = {}, role, uid, comments: initialC
     () => (content || "").replace(/<[^>]*>/g, "").trim().length > 0,
     [content]
   );
-  const isComplete = hasTitle && hasContent;
   const filteredTagOptions = useMemo(() => {
     const q = tagSearch.trim().toLowerCase();
     if (!q) return tags;
@@ -149,7 +153,11 @@ export default function PostEditor({ initial = {}, role, uid, comments: initialC
         throw new Error(message || 'Failed to post comment');
       }
       const created = await res.json();
-      setComments((prev) => [created, ...prev]);
+      setComments((prev) => {
+        const next = [created, ...prev];
+        setVisibleCount((count) => Math.min(next.length, Math.max(count + 1, 10)));
+        return next;
+      });
       setCommentDraft('');
       toast.success('Comment posted', { position: 'bottom-center' });
     } catch (err: any) {
@@ -172,7 +180,7 @@ export default function PostEditor({ initial = {}, role, uid, comments: initialC
     [deleteAllowed]
   );
 
-  const readyForSubmit = isAdmin ? hasTitle : (isComplete && selectedTags.length > 0);
+  const readyForSubmit = hasTitle && hasContent && selectedTags.length > 0;
 
   const snapshotRef = useRef<{ title: string; slug: string; excerpt: string; content: string; coverImageUrl: string; seoKeywords: string; tags: string } | null>(null);
 
@@ -322,26 +330,11 @@ export default function PostEditor({ initial = {}, role, uid, comments: initialC
   const removeCover = () => setCoverImageUrl("");
 
   const onSave = useCallback(async (): Promise<number | null> => {
-    if (!hasTitle) {
-      toast.error('Add a title before saving.', { position: 'bottom-center' });
-      return null;
-    }
-    if (!hasContent) {
-      toast.error('Fill in content before saving.', { position: 'bottom-center' });
-      return null;
-    }
-    if (!isAdmin && selectedTags.length === 0) {
-      toast.error('Select at least one tag before saving.', { position: 'bottom-center' });
-      return null;
-    }
     if (saving) return postId ?? null;
     setSaving(true);
     try {
-      const nextSlug = slug.trim() || slugify(title);
-      if (!nextSlug) {
-        toast.error('Provide a valid slug.', { position: 'bottom-center' });
-        return null;
-      }
+      const baseSlug = slug.trim() || (title ? slugify(title) : '').trim();
+      const nextSlug = baseSlug || `draft-${Date.now().toString(36)}`;
 
       if (!postId) {
         const res = await fetch('/api/posts', {
@@ -399,10 +392,25 @@ export default function PostEditor({ initial = {}, role, uid, comments: initialC
     } finally {
       setSaving(false);
     }
-  }, [coverImageUrl, content, excerpt, hasContent, hasTitle, isAdmin, markSavedSnapshot, postId, router, saving, selectedTags, slug, slugify, title, seoKeywords]);
+  }, [coverImageUrl, content, excerpt, markSavedSnapshot, postId, router, saving, selectedTags, slug, slugify, title, seoKeywords]);
+
+  const validateForSubmission = useCallback(() => {
+    const missing: string[] = [];
+    if (!title.trim()) missing.push('title');
+    if (!hasContent) missing.push('content');
+    if (selectedTags.length === 0) missing.push('tag');
+    if (missing.length) {
+      toast.error('Add a title, content, and at least one tag before submitting or publishing.', {
+        position: 'bottom-center',
+      });
+      return false;
+    }
+    return true;
+  }, [hasContent, selectedTags, title]);
 
   const onPublish = useCallback(async () => {
     if (publishing) return;
+    if (!validateForSubmission()) return;
     setPublishing(true);
     try {
       let id = postId;
@@ -422,11 +430,6 @@ export default function PostEditor({ initial = {}, role, uid, comments: initialC
         return;
       }
 
-      if (!isComplete) {
-        toast.error('Fill in title and content before publishing.', { position: 'bottom-center' });
-        return;
-      }
-
       const res = await fetch(`/api/posts/${id}/publish`, { method: 'POST' });
       if (!res.ok) throw new Error('Failed to publish');
       toast.success('Post published', { position: 'bottom-center' });
@@ -437,7 +440,7 @@ export default function PostEditor({ initial = {}, role, uid, comments: initialC
     } finally {
       setPublishing(false);
     }
-  }, [dirty, isAdmin, isComplete, onSave, postId, publishing, router]);
+  }, [dirty, isAdmin, onSave, postId, publishing, router, validateForSubmission]);
 
   const onDelete = useCallback(async () => {
     if (!deleteAllowed || !postId) return;
@@ -535,6 +538,8 @@ export default function PostEditor({ initial = {}, role, uid, comments: initialC
   }, [deleteAllowed, hasTitle, isAdmin, loadTeam, onDelete, onPublish, onSave, teamLoaded]);
 
   const hasComments = comments.length > 0;
+  const visibleComments = hasComments ? comments.slice(0, visibleCount) : [];
+  const canLoadMoreComments = visibleCount < comments.length;
 
   return (
     <div className="space-y-6 px-4 sm:px-6 lg:px-10 max-w-4xl mx-auto">
@@ -715,17 +720,52 @@ export default function PostEditor({ initial = {}, role, uid, comments: initialC
                 )}
               </div>
               {hasComments ? (
-                <ul className="space-y-3">
-                  {comments.map((comment) => (
-                    <li key={comment.id} className="rounded border px-3 py-2 text-sm shadow-sm">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="font-medium text-foreground">{comment.authorName}</span>
-                        <span>{new Date(comment.createdAt).toLocaleString()}</span>
-                      </div>
-                      <p className="mt-1 whitespace-pre-wrap leading-snug">{comment.note}</p>
-                    </li>
-                  ))}
-                </ul>
+                <div className="space-y-3">
+                  <ul className="space-y-3">
+                    {visibleComments.map((comment) => {
+                      const formattedDate = new Intl.DateTimeFormat('en-US', {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                        timeZone: 'UTC',
+                      }).format(new Date(comment.createdAt));
+
+                      return (
+                        <li key={comment.id} className="rounded border p-3 text-sm shadow-sm">
+                          <div className="flex gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={comment.authorImage || undefined} alt={comment.authorName} />
+                              <AvatarFallback>
+                                {comment.authorName
+                                  .split(/\s+/)
+                                  .map((part) => part[0]?.toUpperCase())
+                                  .join('')
+                                  .slice(0, 2) || 'U'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span className="font-medium text-foreground">{comment.authorName}</span>
+                                <span>{formattedDate}</span>
+                              </div>
+                              <p className="whitespace-pre-wrap leading-snug text-sm text-foreground">{comment.note}</p>
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {canLoadMoreComments && (
+                    <div className="flex justify-center">
+                      <button
+                        type="button"
+                        className="rounded border px-3 py-1.5 text-sm"
+                        onClick={() => setVisibleCount((count) => Math.min(count + 10, comments.length))}
+                      >
+                        Load more comments
+                      </button>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">No comments yet.</p>
               )}

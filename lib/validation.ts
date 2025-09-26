@@ -1,10 +1,15 @@
 import { z } from "zod";
 
-export const createPostSchema = z.object({
-  title: z.string().min(1).max(200),
-  slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/),
+const basePostSchema = z.object({
+  title: z.string().max(200).optional().nullable(),
+  slug: z
+    .string()
+    .max(200)
+    .regex(/^[a-z0-9-]+$/)
+    .optional()
+    .nullable(),
   excerpt: z.string().max(500).optional().nullable(),
-  content: z.string().min(1),
+  content: z.string().optional().nullable(),
   status: z.enum(["draft", "submitted", "published"]).default("draft"),
   coverImageUrl: z.string().url().optional().nullable(),
   tags: z.array(z.string()).optional().default([]), // tag slugs
@@ -12,7 +17,65 @@ export const createPostSchema = z.object({
   seoKeywords: z.string().max(500).optional().nullable(),
 });
 
-export const updatePostSchema = createPostSchema.partial();
+export const createPostSchema = basePostSchema.superRefine((data, ctx) => {
+  if (data.status !== "draft") {
+    if (!data.title?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["title"],
+        message: "Title is required when submitting or publishing.",
+      });
+    }
+    if (!data.content || data.content.trim().length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["content"],
+        message: "Content is required when submitting or publishing.",
+      });
+    }
+    if (!data.tags || data.tags.length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["tags"],
+        message: "Select at least one tag when submitting or publishing.",
+      });
+    }
+  }
+});
+
+export const updatePostSchema = basePostSchema
+  .partial()
+  .superRefine((data, ctx) => {
+    if (data.status && data.status !== "draft") {
+      if (data.title !== undefined) {
+        const value = (data.title ?? '').toString().trim();
+        if (!value) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["title"],
+            message: "Title is required when submitting or publishing.",
+          });
+        }
+      }
+      if (data.content !== undefined) {
+        const value = (data.content ?? '').toString().trim();
+        if (value.length === 0) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["content"],
+            message: "Content is required when submitting or publishing.",
+          });
+        }
+      }
+      if (data.tags !== undefined && data.tags.length === 0) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["tags"],
+          message: "Select at least one tag when submitting or publishing.",
+        });
+      }
+    }
+  });
 export const updatePostWithAdminSchema = updatePostSchema;
 
 export const tagSchema = z.object({

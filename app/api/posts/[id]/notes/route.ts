@@ -33,6 +33,7 @@ export async function GET(_req: Request, context: any) {
       authorId: postNotes.authorId,
       authorName: users.name,
       authorEmail: users.email,
+      authorImage: users.image,
     })
     .from(postNotes)
     .leftJoin(users, eq(users.id, postNotes.authorId))
@@ -46,6 +47,7 @@ export async function GET(_req: Request, context: any) {
       createdAt: n.createdAt,
       authorId: n.authorId,
       authorName: n.authorName || n.authorEmail || "Unknown",
+      authorImage: n.authorImage || null,
     }))
   );
 }
@@ -83,7 +85,7 @@ export async function POST(req: Request, context: any) {
     .from(profiles)
     .where(eq(profiles.userId, uid));
   const [actorUser] = await db
-    .select({ name: users.name, email: users.email })
+    .select({ name: users.name, email: users.email, image: users.image })
     .from(users)
     .where(eq(users.id, uid));
   const fallbackName = (actorUser?.name || actorUser?.email || '').trim();
@@ -113,6 +115,12 @@ export async function POST(req: Request, context: any) {
   if (post.authorId && post.authorId !== uid) {
     targetIds.add(post.authorId);
   }
+  if (post.assignedTo && post.assignedTo !== uid) {
+    targetIds.add(post.assignedTo);
+  }
+  if (post.createdBy && post.createdBy !== uid) {
+    targetIds.add(post.createdBy);
+  }
 
   const notificationsPayload = {
     postId: id,
@@ -123,12 +131,13 @@ export async function POST(req: Request, context: any) {
     actorName,
     actorFirstName,
     actorLastName,
+    kind: 'comment',
   } as any;
 
   if (targetIds.size) {
     try {
       await db.insert(notifications).values(
-        Array.from(targetIds).map((userId) => ({ userId, type: 'comment' as any, payload: notificationsPayload }))
+        Array.from(targetIds).map((userId) => ({ userId, type: 'note' as any, payload: notificationsPayload }))
       );
     } catch (error) {
       console.error('Failed to enqueue comment notifications', error);
@@ -144,6 +153,7 @@ export async function POST(req: Request, context: any) {
       createdAt,
       authorId: created.authorId,
       authorName: actorName,
+      authorImage: actorUser?.image || null,
     },
     { status: 201 }
   );
