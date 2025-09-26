@@ -137,7 +137,7 @@ export async function POST(req: Request, context: any) {
   if (targetIds.size) {
     try {
       await db.insert(notifications).values(
-        Array.from(targetIds).map((userId) => ({ userId, type: 'note' as any, payload: notificationsPayload }))
+        Array.from(targetIds).map((userId) => ({ userId, type: 'comment' as any, payload: notificationsPayload }))
       );
     } catch (error) {
       console.error('Failed to enqueue comment notifications', error);

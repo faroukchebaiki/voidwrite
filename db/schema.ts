@@ -117,7 +117,7 @@ export const dailyPostViews = pgTable("daily_post_views", {
 }));
 
 // Notifications
-export const notificationType = pgEnum("notification_type", ["assignment", "submission", "approval", "note", "edit"]);
+export const notificationType = pgEnum("notification_type", ["assignment", "submission", "approval", "note", "edit", "comment"]);
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull(),
