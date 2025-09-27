@@ -1,13 +1,15 @@
-import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { posts } from "@/db/schema";
 import { users } from "@/db/auth-schema";
 import { eq, desc, and } from "drizzle-orm";
 import PendingClient from "./client";
+import { requireStaff } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
 
 export default async function PendingPage() {
-  const session = await auth();
-  const role = (session?.user as any)?.role as string | undefined;
+  const user = await requireStaff();
+  if (!user) return redirect('/signin');
+  const role = (user as any)?.role as string | undefined;
   if (role !== 'admin') return null;
   const rows = await db
     .select({ p: posts, a: users })

@@ -49,7 +49,10 @@ const SOCIAL_LINKS: SocialLink[] = [
 export default function Header({ siteTitle, tags, initialMode }: HeaderProps) {
   const pathname = usePathname();
   const { theme, setTheme, systemTheme } = useTheme();
-  const hideHeader = pathname === '/signin' || pathname === '/signup' || pathname?.startsWith('/studio');
+  const hideHeader =
+    pathname === '/signin' ||
+    pathname === '/signup' ||
+    pathname?.startsWith('/studio');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

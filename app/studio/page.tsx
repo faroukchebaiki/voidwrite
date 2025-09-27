@@ -1,11 +1,13 @@
 import { db } from "@/db";
 import { posts, dailyPostViews } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { auth } from "@/auth-app";
+import { requireStaff } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
 
 export default async function StudioHome() {
-  const session = await auth();
-  const role = (session?.user as any)?.role as string | undefined;
+  const user = await requireStaff();
+  if (!user) return redirect('/signin');
+  const role = (user as any)?.role as string | undefined;
   const allPosts = await db
     .select()
     .from(posts)

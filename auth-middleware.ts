@@ -18,10 +18,16 @@ export const authConfig = {
   providers: [],
   callbacks: {
     async session({ session, token }) {
-      const u: any = session.user ?? {};
-      u.id = (token as any)?.sub ?? null;
-      u.role = (token as any)?.role ?? undefined;
-      session.user = u;
+      if ((token as any)?.suspended) {
+        if (session.user) {
+          delete (session as any).user;
+        }
+      } else {
+        const u: any = session.user ?? {};
+        u.id = (token as any)?.sub ?? null;
+        u.role = (token as any)?.role ?? undefined;
+        session.user = u;
+      }
       return session;
     },
   },

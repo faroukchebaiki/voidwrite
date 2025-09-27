@@ -3,16 +3,20 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SiteHeader } from '@/components/site-header';
 import { Toaster } from '@/components/ui/sonner';
-import { auth } from '@/auth-app';
+import { requireStaff } from '@/lib/auth-helpers';
+import { redirect } from 'next/navigation';
+import { SuspendedWatcher } from '@/components/SuspendedWatcher';
 
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  const role = (session?.user as any)?.role as string | undefined;
-  const user = session?.user as { id?: string | null; name?: string | null; email?: string | null; image?: string | null } | undefined;
+  const user = await requireStaff();
+  if (!user) return redirect('/signin');
+  const role = (user as any)?.role as string | undefined;
+  const sidebarUser = user as { id?: string | null; name?: string | null; email?: string | null; image?: string | null };
   return (
     <SidebarProvider>
-      <AppSidebar variant="inset" role={role} user={user} />
+      <AppSidebar variant="inset" role={role} user={sidebarUser} />
       <SidebarInset>
+        <SuspendedWatcher />
         <React.Suspense fallback={null}>
           <SiteHeader />
         </React.Suspense>

@@ -1,13 +1,15 @@
 import PostsTableClient, { type PostRow } from "@/components/PostsTableClient";
-import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { posts } from "@/db/schema";
 import { users } from "@/db/auth-schema";
 import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { requireStaff } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
 
 export default async function MyBlogsPage({ searchParams }: any) {
-  const session = await auth();
-  const uid = (session?.user as any)?.id as string | undefined;
+  const user = await requireStaff();
+  if (!user) return redirect('/signin');
+  const uid = (user as any)?.id as string | undefined;
   const params = (await searchParams) || {};
   const q = String((params as any).q || "").trim();
   const draftOnly = String((params as any).draft || "") === "1";

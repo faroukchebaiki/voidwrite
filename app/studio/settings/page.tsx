@@ -1,17 +1,19 @@
-import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { authenticators } from "@/db/auth-schema";
 import { passkeyLabels } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import SettingsSingle from "@/components/SettingsSingle";
 import { siteConfig } from "@/site";
+import { requireStaff } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
 
 export default async function StudioSettings() {
-  const session = await auth();
-  const uid = (session?.user as any)?.id as string | undefined;
-  const email = (session?.user as any)?.email as string | undefined;
-  const name = (session?.user as any)?.name as string | undefined;
-  const role = (session?.user as any)?.role as string | undefined;
+  const user = await requireStaff();
+  if (!user) return redirect('/signin');
+  const uid = (user as any)?.id as string | undefined;
+  const email = (user as any)?.email as string | undefined;
+  const name = (user as any)?.name as string | undefined;
+  const role = (user as any)?.role as string | undefined;
   if (uid) {
     await db.execute(sql`
       create table if not exists passkey_labels (

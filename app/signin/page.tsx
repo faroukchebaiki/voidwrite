@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn as signInCredentials } from "next-auth/react";
 import { signIn as signInPasskey } from "next-auth/webauthn";
 
@@ -16,23 +17,44 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SuspendedBanner } from "@/components/login-banner";
 
 export default function SignInPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
+    setErrorMessage(null);
     try {
-      await signInCredentials("credentials", {
+      const result = await signInCredentials("credentials", {
         email,
         password,
+        redirect: false,
         callbackUrl: "/studio",
       });
+      if (result?.error) {
+        if (result.error === "AccessDenied") {
+          setErrorMessage("Your account has been suspended. Please contact an administrator.");
+        } else {
+          setErrorMessage("Incorrect email or password. Please try again.");
+        }
+        return;
+      }
+      if (result?.url && result.url.includes("error=")) {
+        setErrorMessage("Your account has been suspended. Please contact an administrator.");
+        return;
+      }
+      const url = result?.url ?? "/studio";
+      router.push(url);
+      router.refresh();
     } finally {
       setLoading(false);
     }
@@ -78,6 +100,9 @@ export default function SignInPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <SuspendedBanner error={searchParams.get("error")}
+            />
+            {searchParams.get("error") ? <div className="h-4" /> : null}
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="space-y-2 text-left">
                 <Label htmlFor="email">Email or username</Label>
@@ -105,6 +130,9 @@ export default function SignInPage() {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Signing in…" : "Sign in"}
               </Button>
+              {errorMessage && (
+                <p className="text-sm text-destructive">{errorMessage}</p>
+              )}
             </form>
             <div className="my-6 flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
               <div className="h-px flex-1 bg-muted-foreground/30" />

@@ -1,14 +1,15 @@
-import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { invites } from "@/db/schema";
 import { users } from "@/db/auth-schema";
 import { inArray, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import InviteClient from "./client";
+import { requireStaff } from "@/lib/auth-helpers";
 
 export default async function InvitePage() {
-  const session = await auth();
-  const role = (session?.user as any)?.role as string | undefined;
+  const user = await requireStaff();
+  if (!user) return redirect('/signin');
+  const role = (user as any)?.role as string | undefined;
   if (role !== 'admin') redirect('/studio');
   const rows = await db.select().from(invites).orderBy(desc(invites.createdAt));
   const ids = Array.from(new Set(rows.flatMap((r:any)=>[r.createdBy, r.usedBy].filter(Boolean))));
@@ -23,4 +24,3 @@ export default async function InvitePage() {
   }));
   return <InviteClient list={list} />;
 }
-

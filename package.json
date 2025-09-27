@@ -1,6 +1,6 @@
 {
   "name": "voidwrite",
-  "version": "0.4.0",
+  "version": "0.7.0",
   "private": true,
   "author": "farouk chebaiki",
   "homepage": "https://github.com/faroukchebaiki",
@@ -58,6 +58,7 @@
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "recharts": "2.15.4",
+    "resend": "^4.8.0",
     "sanitize-html": "^2.17.0",
     "sharp": "0.33.4",
     "sonner": "^2.0.7",

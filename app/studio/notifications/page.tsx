@@ -1,13 +1,15 @@
-import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import NotificationsClient, { type NotificationRow } from "@/components/NotificationsClient";
+import { requireStaff } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
 
 export default async function NotificationsPage() {
-  const session = await auth();
-  const uid = (session?.user as any)?.id as string | undefined;
-  if (!uid) return null;
+  const user = await requireStaff();
+  if (!user) return redirect('/signin');
+  const uid = (user as any)?.id as string | undefined;
+  if (!uid) return redirect('/signin');
   const list = await db
     .select()
     .from(notifications)

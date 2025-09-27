@@ -2,11 +2,25 @@ import { auth } from "../auth-app";
 import { db } from "@/db";
 import { profiles } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 
 export async function requireUser() {
   const session = await auth();
   if (!session?.user) return null;
-  return session.user as (typeof session.user) & { id: string; role?: string };
+  const user = session.user as (typeof session.user) & { id: string; role?: string };
+  const userId = (user as any)?.id as string | undefined;
+  if (!userId) return null;
+  try {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId));
+    if (!profile) return null;
+    if (profile.suspended) {
+      redirect('/signin?error=suspended');
+    }
+  } catch (error) {
+    console.error('Failed to load user profile', error);
+    return null;
+  }
+  return user;
 }
 
 // Staff = admin or editor

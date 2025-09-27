@@ -5,7 +5,7 @@ import { ThemeProvider } from 'next-themes';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Analytics } from '@/lib/analytics';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { db } from '@/db';
 import { tags } from '@/db/schema';
 import { sql } from 'drizzle-orm';
@@ -21,8 +21,20 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const themeCookie = cookieStore.get('vw_theme')?.value as 'light'|'dark'|'system'|undefined;
   const initialClass = themeCookie === 'dark' ? 'dark' : themeCookie === 'light' ? '' : '';
   const initialMode: 'light' | 'dark' = themeCookie === 'dark' ? 'dark' : 'light';
+  const headerList = await headers();
+  const matchedPath = headerList.get('x-matched-path') || headerList.get('next-url') || '/';
+  let pathname = matchedPath;
+  if (!matchedPath.startsWith('/')) {
+    try {
+      pathname = new URL(matchedPath, 'http://localhost').pathname;
+    } catch {
+      pathname = '/';
+    }
+  }
+  const hideChrome = pathname === '/suspended';
+
   let navTags: { name: string | null; slug: string | null }[] = [];
-  if (process.env.DATABASE_URL) {
+  if (!hideChrome && process.env.DATABASE_URL) {
     try {
       navTags = await db
         .select({ name: tags.name, slug: tags.slug })
@@ -40,15 +52,17 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     >
       <body className="antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <Header
-            siteTitle={siteConfig.title}
-            tags={navTags
-              .map((t) => ({ name: (t.name ?? t.slug) ?? '', slug: t.slug ?? '' }))
-              .filter((t) => t.slug)}
-            initialMode={initialMode}
-          />
+          {!hideChrome && (
+            <Header
+              siteTitle={siteConfig.title}
+              tags={navTags
+                .map((t) => ({ name: (t.name ?? t.slug) ?? '', slug: t.slug ?? '' }))
+                .filter((t) => t.slug)}
+              initialMode={initialMode}
+            />
+          )}
           {children}
-          <Footer />
+          {!hideChrome && <Footer />}
           <Analytics />
         </ThemeProvider>
       </body>

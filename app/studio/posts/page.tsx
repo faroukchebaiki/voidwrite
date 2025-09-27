@@ -1,15 +1,15 @@
-import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { posts } from "@/db/schema";
 import { users } from "@/db/auth-schema";
 import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import PostsTableClient, { type PostRow } from "@/components/PostsTableClient";
 import { redirect } from "next/navigation";
+import { requireStaff } from "@/lib/auth-helpers";
 
 export default async function StudioPosts({ searchParams }: any) {
-  const session = await auth();
-  const role = (session?.user as any)?.role as string | undefined;
-  // const uid = (session?.user as any)?.id as string | undefined;
+  const user = await requireStaff();
+  if (!user) return redirect('/signin');
+  const role = (user as any)?.role as string | undefined;
   if (role !== 'admin') return redirect('/studio/my-blogs');
   const params = (await searchParams) || {};
   const q = String((params as any).q || "").trim();

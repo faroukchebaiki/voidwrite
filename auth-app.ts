@@ -59,7 +59,7 @@ export const authConfig = {
         if (!user) return null;
 
         const [profile] = await db.select().from(profiles).where(eq(profiles.userId, user.id));
-        if (!profile?.passwordHash || profile.suspended) return null;
+        if (!profile?.passwordHash) return null;
         const ok = await verifyPassword(profile.passwordHash, password);
         if (!ok) return null;
         return { id: user.id, name: user.name, email: user.email, image: user.image } as any;
@@ -74,16 +74,30 @@ export const authConfig = {
     }),
   ],
   callbacks: {
+    async signIn({ user }) {
+      const id = (user as any)?.id;
+      if (!id) return true;
+      const [profile] = await db.select().from(profiles).where(eq(profiles.userId, id));
+      if (profile?.suspended) {
+        return false;
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       const id = (user as any)?.id ?? (token as any)?.sub;
       if (id) {
         const [profile] = await db.select().from(profiles).where(eq(profiles.userId, id as string));
         (token as any).role = profile?.role ?? undefined;
+        (token as any).suspended = profile?.suspended ?? false;
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
+      if ((token as any).suspended) {
+        if (session.user) {
+          delete (session as any).user;
+        }
+      } else if (session.user) {
         (session.user as any).id = (token as any).sub;
         (session.user as any).role = (token as any).role ?? undefined;
       }

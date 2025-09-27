@@ -1,9 +1,10 @@
-import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { users } from "@/db/auth-schema";
 import { profiles, posts } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import Link from "next/link";
+import { requireStaff } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
 
 type Member = {
   id: string;
@@ -15,8 +16,9 @@ type Member = {
 };
 
 export default async function MembersPage() {
-  const session = await auth();
-  const role = (session?.user as any)?.role as string | undefined;
+  const user = await requireStaff();
+  if (!user) return redirect('/signin');
+  const role = (user as any)?.role as string | undefined;
 
   const raw = await db
     .select({ u: users, p: profiles })

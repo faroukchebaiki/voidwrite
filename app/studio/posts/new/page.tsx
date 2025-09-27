@@ -1,13 +1,15 @@
-import { auth } from "@/auth-app";
 import PostEditor from "@/components/PostEditor";
 import { db } from "@/db";
 import { tags } from "@/db/schema";
 import { sql } from "drizzle-orm";
+import { requireStaff } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
 
 export default async function NewPostPage() {
-  const session = await auth();
-  const role = (session?.user as any)?.role as string | undefined;
-  const uid = (session?.user as any)?.id as string | undefined;
+  const user = await requireStaff();
+  if (!user) return redirect('/signin');
+  const role = (user as any)?.role as string | undefined;
+  const uid = (user as any)?.id as string | undefined;
   const availableTags = await db
     .select({ name: tags.name, slug: tags.slug })
     .from(tags)

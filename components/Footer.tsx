@@ -7,7 +7,10 @@ import { cn } from '@/lib/utils';
 
 export default function Footer() {
   const pathname = usePathname();
-  const hideFooter = pathname?.startsWith('/studio') || pathname === '/signin' || pathname === '/signup';
+  const hideFooter =
+    pathname?.startsWith('/studio') ||
+    pathname === '/signin' ||
+    pathname === '/signup';
   if (hideFooter) return null;
   return (
     <footer className="mt-16 border-t bg-muted/20">

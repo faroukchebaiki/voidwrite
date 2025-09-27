@@ -1,14 +1,15 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth-app";
 import { db } from "@/db";
 import { posts } from "@/db/schema";
 import { users } from "@/db/auth-schema";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import TrashTableClient, { type TrashRow } from "@/components/TrashTableClient";
+import { requireStaff } from "@/lib/auth-helpers";
 
 export default async function TrashPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
-  const session = await auth();
-  const role = (session?.user as any)?.role as string | undefined;
+  const user = await requireStaff();
+  if (!user) return redirect('/signin');
+  const role = (user as any)?.role as string | undefined;
   if (role !== "admin") {
     return redirect("/studio/my-blogs");
   }
