@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   const plain = `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\n${message}`;
 
   try {
-    await resend.emails.send({
+    const { data, error: sendError } = await resend.emails.send({
       from: FROM_EMAIL,
       to: [TEAM_EMAIL],
       subject: `[Contact] ${subject}`,
@@ -44,6 +44,13 @@ export async function POST(req: Request) {
       text: plain,
       html: `<p><strong>Name:</strong> ${escapeHtml(name)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Subject:</strong> ${escapeHtml(subject)}</p><p>${escapeHtml(message).replace(/\n/g, '<br />')}</p>`,
     });
+    if (sendError) {
+      console.error("Failed to send contact email", sendError);
+      return NextResponse.json({ error: sendError.message || "Failed to send email" }, { status: 502 });
+    }
+    if (!data?.id) {
+      return NextResponse.json({ error: "Email delivery response missing id." }, { status: 502 });
+    }
   } catch (error) {
     console.error("Failed to send contact email", error);
     return NextResponse.json({ error: "We couldn't send your message right now. Please try again later." }, { status: 500 });

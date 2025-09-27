@@ -134,3 +134,14 @@ export const postNotes = pgTable("post_notes", {
   note: text("note").notNull(),
   createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
 });
+
+export const signupRequests = pgTable("signup_requests", {
+  email: text("email").primaryKey(),
+  name: text("name"),
+  passwordHash: text("password_hash").notNull(),
+  inviteCode: text("invite_code"),
+  codeHash: text("code_hash").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: false }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
+});

@@ -90,6 +90,11 @@ export const signupSchema = z.object({
   inviteCode: z.string().min(6).max(64).optional(),
 });
 
+export const signupConfirmSchema = z.object({
+  email: z.string().email(),
+  code: z.string().min(4).max(10),
+});
+
 export const assignPostSchema = z.object({
   assignedTo: z.string().uuid(),
   note: z.string().max(2000).optional().nullable(),
@@ -109,4 +114,5 @@ export type CreatePostInput = z.infer<typeof createPostSchema>;
 export type UpdatePostInput = z.infer<typeof updatePostSchema>;
 export type TagInput = z.infer<typeof tagSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
+export type SignupConfirmInput = z.infer<typeof signupConfirmSchema>;
 export type PostNoteInput = z.infer<typeof postNoteSchema>;

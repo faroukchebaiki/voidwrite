@@ -2,7 +2,6 @@ import { auth } from "../auth-app";
 import { db } from "@/db";
 import { profiles } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { redirect } from "next/navigation";
 
 export async function requireUser() {
   const session = await auth();
@@ -12,10 +11,7 @@ export async function requireUser() {
   if (!userId) return null;
   try {
     const [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId));
-    if (!profile) return null;
-    if (profile.suspended) {
-      redirect('/signin?error=suspended');
-    }
+    if (!profile || profile.suspended) return null;
   } catch (error) {
     console.error('Failed to load user profile', error);
     return null;

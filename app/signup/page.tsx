@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 import {
   Card,
@@ -23,13 +23,14 @@ export default function SignUpPage() {
   const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/auth/signup", {
+      const response = await fetch("/api/auth/signup/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -43,7 +44,13 @@ export default function SignUpPage() {
         const data = await response.json().catch(() => ({}));
         throw new Error(data?.error || "Failed to create account");
       }
-      await signIn("credentials", { email, password, callbackUrl: "/studio" });
+      try {
+        sessionStorage.setItem(
+          "voidwrite-signup",
+          JSON.stringify({ email, password, name, inviteCode })
+        );
+      } catch {}
+      router.push(`/signup/verify?email=${encodeURIComponent(email)}`);
     } catch (err: any) {
       setError(err.message ?? "Something went wrong");
     } finally {
