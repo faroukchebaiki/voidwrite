@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MoreVerticalIcon, Trash2Icon, PencilIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 export type PostRow = {
   id: number;
@@ -22,7 +23,7 @@ export type PostRow = {
   assignedToName?: string;
 };
 
-export default function PostsTableClient({ rows, total, limit, mine, sort, authorOptions = [], author, status, assigneeOptions = [], assignee, draftOnly }: {
+export default function PostsTableClient({ rows, total, limit, mine, sort, authorOptions = [], author, status, assigneeOptions = [], assignee, draftOnly, query }: {
   rows: PostRow[];
   total: number;
   limit: number;
@@ -34,13 +35,19 @@ export default function PostsTableClient({ rows, total, limit, mine, sort, autho
   assigneeOptions?: { id: string; label: string }[];
   assignee?: string | null;
   draftOnly?: boolean;
+  query?: string;
 }) {
   const router = useRouter();
   const params = useSearchParams();
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
+  const [searchValue, setSearchValue] = useState(query ?? '');
 
   const offset = Math.max(0, Number(params.get('offset') || '0'));
+
+  useEffect(() => {
+    setSearchValue(query ?? '');
+  }, [query]);
 
   const updateParam = (key: string, value?: string, opts: { resetOffset?: boolean } = { resetOffset: true }) => {
     const qp = new URLSearchParams(params.toString());
@@ -60,6 +67,11 @@ export default function PostsTableClient({ rows, total, limit, mine, sort, autho
   const onPrev = () => updateParam('offset', String(Math.max(0, offset - limit)), { resetOffset: false });
   const onNext = () => updateParam('offset', String(offset + limit), { resetOffset: false });
 
+  const onSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    updateParam('q', searchValue.trim(), { resetOffset: true });
+  };
+
   const onDelete = async (id: number) => {
     if (!confirm("Delete this post?")) return;
     const res = await fetch(`/api/posts/${id}`, { method: "DELETE" });
@@ -74,6 +86,18 @@ export default function PostsTableClient({ rows, total, limit, mine, sort, autho
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
+        <form onSubmit={onSearch} className="flex items-center gap-2">
+          <Input
+            className="h-8 w-48"
+            placeholder="Search posts…"
+            value={searchValue}
+            onChange={(event) => setSearchValue(event.target.value)}
+          />
+          <Button type="submit" size="sm" variant="outline" disabled={pending}>
+            Search
+          </Button>
+        </form>
+
         {!mine && authorOptions.length > 0 && (
           <div className="flex items-center gap-2">
             <label className="text-sm text-muted-foreground">Author:</label>

@@ -97,7 +97,7 @@ export default async function StudioPosts({ searchParams }: any) {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">All Posts</h1>
       </div>
-      <PostsTableClient rows={mapped} total={total} limit={limit} mine={false} draftOnly={draftOnly} sort={sort} authorOptions={authorOptions} author={authorParam ?? null} status={statusParam} assigneeOptions={assigneeOptions} assignee={assigneeParam ?? null} />
+      <PostsTableClient rows={mapped} total={total} limit={limit} mine={false} draftOnly={draftOnly} sort={sort} authorOptions={authorOptions} author={authorParam ?? null} status={statusParam} assigneeOptions={assigneeOptions} assignee={assigneeParam ?? null} query={q} />
       {rows.length === 0 && <p className="text-sm text-gray-500">No posts found.</p>}
     </div>
   );

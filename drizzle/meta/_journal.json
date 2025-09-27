@@ -78,6 +78,20 @@
       "when": 1758937510406,
       "tag": "0010_add_signup_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1758991735531,
+      "tag": "0011_add_email_change_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1758995334216,
+      "tag": "0012_add_password_reset_requests",
+      "breakpoints": true
     }
   ]
 }

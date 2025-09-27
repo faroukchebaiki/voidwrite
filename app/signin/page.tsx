@@ -126,6 +126,9 @@ export default function SignInPage() {
                   onChange={(event) => setPassword(event.target.value)}
                   required
                 />
+                <div className="text-right text-xs">
+                  <Link href="/reset-password" className="text-foreground underline">Forgot password?</Link>
+                </div>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Signing in…" : "Sign in"}

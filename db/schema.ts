@@ -97,6 +97,20 @@ export const passkeyLabels = pgTable("passkey_labels", {
   updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
 });
 
+export const newsletterSubscribers = pgTable(
+  'newsletter_subscribers',
+  {
+    id: serial('id').primaryKey(),
+    email: text('email').notNull(),
+    unsubscribeToken: text('unsubscribe_token').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: false }).notNull().defaultNow(),
+  },
+  (table) => ({
+    emailUnique: uniqueIndex('newsletter_subscribers_email_unique').on(table.email),
+    unsubscribeTokenUnique: uniqueIndex('newsletter_subscribers_unsubscribe_token_unique').on(table.unsubscribeToken),
+  })
+);
+
 // Invitation codes for staff onboarding
 export const invites = pgTable("invites", {
   code: text("code").primaryKey(),
@@ -140,6 +154,24 @@ export const signupRequests = pgTable("signup_requests", {
   name: text("name"),
   passwordHash: text("password_hash").notNull(),
   inviteCode: text("invite_code"),
+  codeHash: text("code_hash").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: false }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
+});
+
+export const emailChangeRequests = pgTable("email_change_requests", {
+  userId: text("user_id").primaryKey(),
+  newEmail: text("new_email").notNull(),
+  oldCodeHash: text("old_code_hash").notNull(),
+  newCodeHash: text("new_code_hash").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: false }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
+});
+
+export const passwordResetRequests = pgTable("password_reset_requests", {
+  email: text("email").primaryKey(),
   codeHash: text("code_hash").notNull(),
   attempts: integer("attempts").notNull().default(0),
   expiresAt: timestamp("expires_at", { withTimezone: false }).notNull(),

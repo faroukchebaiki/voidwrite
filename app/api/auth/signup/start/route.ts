@@ -7,6 +7,8 @@ import { eq } from "drizzle-orm";
 import { hashPassword } from "@/lib/password";
 import { Resend } from "resend";
 import crypto from "node:crypto";
+import { renderBrandedEmail, renderPlainTextEmail, renderCodeCallout } from "@/lib/emails";
+import { siteConfig } from "@/site";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
@@ -85,12 +87,27 @@ export async function POST(req: Request) {
       },
     });
 
+  const html = renderBrandedEmail({
+    heading: `Confirm your ${siteConfig.title} account`,
+    intro: `Thanks for joining ${siteConfig.title}! Enter the verification code below to finish creating your account.`,
+    content: `${renderCodeCallout(code, 'Verification code')}<p style=\"margin:18px 0 0;\">This code expires in <strong>15 minutes</strong>. If you didn’t try to sign up, you can ignore this email.</p>`,
+    footerNote: 'Need help? Reply to this email and we\'ll take a look.',
+  });
+  const text = renderPlainTextEmail({
+    heading: 'Verify your account',
+    bodyLines: [
+      `Your verification code is ${code}.`,
+      'It will expire in 15 minutes.',
+      `If you didn’t try to join ${siteConfig.title}, you can ignore this message.`,
+    ],
+  });
+
   const { data, error: sendError } = await resend.emails.send({
     from: VERIFY_FROM,
     to: [lowerEmail],
-    subject: "Verify your Voidwrite account",
-    text: `Here is your Voidwrite verification code: ${code}. This code expires in 15 minutes.`,
-    html: `<p>Your Voidwrite verification code is <strong>${code}</strong>.</p><p>This code expires in 15 minutes.</p>`
+    subject: `Verify your ${siteConfig.title} account`,
+    text,
+    html,
   });
   if (sendError) {
     console.error('Failed to send signup verification email', sendError);

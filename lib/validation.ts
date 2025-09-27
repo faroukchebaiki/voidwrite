@@ -95,6 +95,31 @@ export const signupConfirmSchema = z.object({
   code: z.string().min(4).max(10),
 });
 
+export const emailChangeStartSchema = z.object({
+  newEmail: z.string().email(),
+  password: z.string().min(1),
+});
+
+export const emailChangeConfirmSchema = z.object({
+  oldCode: z.string().min(4).max(10),
+  newCode: z.string().min(4).max(10),
+});
+
+export const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8).max(100),
+});
+
+export const passwordResetStartSchema = z.object({
+  email: z.string().email(),
+});
+
+export const passwordResetConfirmSchema = z.object({
+  email: z.string().email(),
+  code: z.string().min(4).max(10),
+  newPassword: z.string().min(8).max(100),
+});
+
 export const assignPostSchema = z.object({
   assignedTo: z.string().uuid(),
   note: z.string().max(2000).optional().nullable(),
@@ -115,4 +140,9 @@ export type UpdatePostInput = z.infer<typeof updatePostSchema>;
 export type TagInput = z.infer<typeof tagSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
 export type SignupConfirmInput = z.infer<typeof signupConfirmSchema>;
+export type EmailChangeStartInput = z.infer<typeof emailChangeStartSchema>;
+export type EmailChangeConfirmInput = z.infer<typeof emailChangeConfirmSchema>;
+export type PasswordChangeInput = z.infer<typeof passwordChangeSchema>;
+export type PasswordResetStartInput = z.infer<typeof passwordResetStartSchema>;
+export type PasswordResetConfirmInput = z.infer<typeof passwordResetConfirmSchema>;
 export type PostNoteInput = z.infer<typeof postNoteSchema>;

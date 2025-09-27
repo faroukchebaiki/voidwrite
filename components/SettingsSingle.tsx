@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { IMAGE_UPLOAD_MAX_BYTES } from "@/lib/uploads";
 import { startRegistration } from "@simplewebauthn/browser";
 import { useRouter } from "next/navigation";
@@ -501,7 +502,6 @@ const persistPasskeyLabel = async (credentialId: string, label?: string) => {
   const setCookieTheme = (val: 'light'|'dark'|'system') => { try { document.cookie = `vw_theme=${val}; Max-Age=${60*60*24*365}; Path=/`; } catch {} };
   const [themeMounted, setThemeMounted] = useState(false);
   useEffect(() => setThemeMounted(true), []);
-  const currentEmail = account?.email || "unknown@example.com";
 
   return (
     <div className="space-y-10">
@@ -561,8 +561,7 @@ const persistPasskeyLabel = async (credentialId: string, label?: string) => {
       {/* Security */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Security</h2>
-        <p className="text-sm text-muted-foreground">Current email: {currentEmail}</p>
-        <EmailPasswordClient />
+        <EmailPasswordClient initialEmail={account?.email || ''} />
         <div className="space-y-2">
           <div className="text-sm font-medium">Passkeys</div>
           <p className="text-sm text-muted-foreground">You can register up to 5. You currently have {list.length}.</p>
@@ -793,38 +792,384 @@ const persistPasskeyLabel = async (credentialId: string, label?: string) => {
   );
 }
 
-function EmailPasswordClient() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const onEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const fd = new FormData(); fd.append('email', email);
-    const res = await fetch('/api/account/email', { method: 'POST', body: fd });
-    if (res.ok) { try { const { toast } = await import('sonner'); toast.success('Email updated'); } catch {}; } else { try { const { toast } = await import('sonner'); toast.error('Failed to update email'); } catch {} }
+function EmailPasswordClient({ initialEmail }: { initialEmail?: string }) {
+  const router = useRouter();
+  const [currentEmail, setCurrentEmail] = useState(initialEmail || "");
+  useEffect(() => {
+    setCurrentEmail(initialEmail || "");
+  }, [initialEmail]);
+
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailStep, setEmailStep] = useState<'start' | 'verify'>('start');
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [newEmailInput, setNewEmailInput] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [oldCode, setOldCode] = useState('');
+  const [newCode, setNewCode] = useState('');
+  const [showEmailPassword, setShowEmailPassword] = useState(false);
+
+  const resetEmailDialog = () => {
+    setEmailDialogOpen(false);
+    setEmailStep('start');
+    setPendingEmail(null);
+    setNewEmailInput('');
+    setEmailPassword('');
+    setEmailError(null);
+    setEmailLoading(false);
+    setOldCode('');
+    setNewCode('');
+    setShowEmailPassword(false);
   };
-  const onPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const fd = new FormData(); fd.append('password', password);
-    const res = await fetch('/api/account/password', { method: 'POST', body: fd });
-    if (res.ok) { try { const { toast } = await import('sonner'); toast.success('Password changed'); } catch {}; setPassword(''); } else { try { const { toast } = await import('sonner'); toast.error('Failed to change password'); } catch {} }
+
+  const handleStartEmailChange = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!newEmailInput.trim()) {
+      setEmailError('Enter a new email address.');
+      return;
+    }
+    setEmailLoading(true);
+    setEmailError(null);
+    try {
+      const res = await fetch('/api/account/email/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newEmail: newEmailInput.trim(), password: emailPassword }),
+      });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        throw new Error((detail as any)?.error || 'Failed to send verification codes.');
+      }
+      setPendingEmail(newEmailInput.trim());
+      setEmailStep('verify');
+      setOldCode('');
+      setNewCode('');
+      setEmailPassword('');
+      toast.success('Verification codes sent. Check both email addresses.', { position: 'bottom-center' });
+    } catch (error) {
+      setEmailError(error instanceof Error ? error.message : 'Failed to send verification codes.');
+    } finally {
+      setEmailLoading(false);
+    }
   };
+
+  const handleConfirmEmailChange = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setEmailLoading(true);
+    setEmailError(null);
+    try {
+      const res = await fetch('/api/account/email/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldCode: oldCode.trim(), newCode: newCode.trim() }),
+      });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        throw new Error((detail as any)?.error || 'Failed to verify codes.');
+      }
+      const data = await res.json().catch(() => null) as any;
+      if (data?.email) {
+        setCurrentEmail(data.email);
+      }
+      toast.success('Email updated successfully.', { position: 'bottom-center' });
+      resetEmailDialog();
+      try { router.refresh(); } catch {}
+    } catch (error) {
+      setEmailError(error instanceof Error ? error.message : 'Failed to verify codes.');
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const resetPasswordDialog = () => {
+    setPasswordDialogOpen(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordError(null);
+    setPasswordLoading(false);
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+  };
+
+  const handlePasswordChange = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match.');
+      return;
+    }
+    setPasswordLoading(true);
+    setPasswordError(null);
+    try {
+      const res = await fetch('/api/account/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        throw new Error((detail as any)?.error || 'Failed to change password.');
+      }
+      toast.success('Password updated successfully.', { position: 'bottom-center' });
+      resetPasswordDialog();
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : 'Failed to change password.');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   return (
-    <>
-      <div className="space-y-2">
-        <div className="text-sm font-medium">Email</div>
-        <form onSubmit={onEmail} className="flex gap-2 max-w-md">
-          <input className="flex-1 border rounded px-3 py-2" type="email" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="new@email.com" required />
-          <button className="px-3 py-2 border rounded">Change email</button>
-        </form>
+    <section className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-sm font-medium text-foreground">Email</div>
+          <div className="text-sm text-muted-foreground">{currentEmail || 'No email set'}</div>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setEmailDialogOpen(true);
+            setEmailStep('start');
+            setNewEmailInput('');
+            setEmailPassword('');
+            setEmailError(null);
+          }}
+        >
+          Change email
+        </Button>
       </div>
-      <div className="space-y-2">
-        <div className="text-sm font-medium">Password</div>
-        <form onSubmit={onPassword} className="flex gap-2 max-w-md">
-          <input className="flex-1 border rounded px-3 py-2" type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="New password" required />
-          <button className="px-3 py-2 border rounded">Change password</button>
-        </form>
-        <p className="text-xs text-muted-foreground">Password last changed: not tracked yet.</p>
+
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-sm font-medium text-foreground">Password</div>
+          <div className="text-sm text-muted-foreground">Use a strong password unique to Voidwrite.</div>
+        </div>
+        <Button variant="outline" onClick={() => setPasswordDialogOpen(true)}>
+          Change password
+        </Button>
       </div>
-    </>
+
+      <Dialog open={emailDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          resetEmailDialog();
+        } else {
+          setEmailDialogOpen(true);
+          setEmailStep('start');
+          setNewEmailInput('');
+          setEmailPassword('');
+          setEmailError(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Change email</DialogTitle>
+            <DialogDescription>
+              You&apos;ll receive verification codes at {currentEmail || 'your current email'} and the new address.
+            </DialogDescription>
+          </DialogHeader>
+          {emailStep === 'start' ? (
+            <form className="space-y-4" onSubmit={handleStartEmailChange}>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="new-email">New email</label>
+                <Input
+                  id="new-email"
+                  type="email"
+                  value={newEmailInput}
+                  onChange={(e) => setNewEmailInput(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="email-password">Current password</label>
+                <div className="relative">
+                  <Input
+                    id="email-password"
+                    type={showEmailPassword ? 'text' : 'password'}
+                    value={emailPassword}
+                    onChange={(e) => setEmailPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailPassword((prev) => !prev)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showEmailPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showEmailPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              {emailError && <p className="text-sm text-destructive">{emailError}</p>}
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={resetEmailDialog} disabled={emailLoading}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={emailLoading}>
+                  {emailLoading ? 'Sending…' : 'Send codes'}
+                </Button>
+              </DialogFooter>
+            </form>
+          ) : (
+            <form className="space-y-4" onSubmit={handleConfirmEmailChange}>
+              <p className="text-sm text-muted-foreground">
+                Enter the codes sent to <span className="font-medium">{currentEmail}</span> and <span className="font-medium">{pendingEmail}</span>.
+              </p>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="code-old">Code from current email</label>
+                <Input
+                  id="code-old"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={oldCode}
+                  onChange={(e) => setOldCode(e.target.value.replace(/\D/g, ''))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="code-new">Code from new email</label>
+                <Input
+                  id="code-new"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={newCode}
+                  onChange={(e) => setNewCode(e.target.value.replace(/\D/g, ''))}
+                  required
+                />
+              </div>
+              {emailError && <p className="text-sm text-destructive">{emailError}</p>}
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <button
+                  type="button"
+                  className="underline underline-offset-4"
+                  onClick={() => {
+                    setEmailStep('start');
+                    setEmailError(null);
+                    setEmailPassword('');
+                    setNewEmailInput(pendingEmail || currentEmail);
+                  }}
+                  disabled={emailLoading}
+                >
+                  Resend codes
+                </button>
+                <DialogFooter className="ml-auto flex gap-2">
+                  <Button type="button" variant="ghost" onClick={resetEmailDialog} disabled={emailLoading}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={emailLoading || oldCode.length < 4 || newCode.length < 4}>
+                    {emailLoading ? 'Verifying…' : 'Confirm change'}
+                  </Button>
+                </DialogFooter>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={passwordDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          resetPasswordDialog();
+        } else {
+          setPasswordDialogOpen(true);
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Change password</DialogTitle>
+            <DialogDescription>Enter your current password and choose a new one.</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={handlePasswordChange}>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="current-password">Current password</label>
+              <div className="relative">
+                <Input
+                  id="current-password"
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowCurrentPassword((prev) => !prev)}
+                  aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="new-password">New password</label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowNewPassword((prev) => !prev)}
+                  aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="confirm-password">Confirm password</label>
+              <div className="relative">
+                <Input
+                  id="confirm-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={resetPasswordDialog} disabled={passwordLoading}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={passwordLoading}>
+                {passwordLoading ? 'Updating…' : 'Update password'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </section>
   );
 }

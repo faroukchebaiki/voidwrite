@@ -84,7 +84,7 @@ export default async function MyBlogsPage({ searchParams }: any) {
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">My Posts</h1>
       </div>
-      <PostsTableClient rows={mapped} total={total} limit={limit} mine={true} draftOnly={draftOnly} sort={sort} status={statusParam} assigneeOptions={assigneeOptions} assignee={assigneeParam ?? null} />
+      <PostsTableClient rows={mapped} total={total} limit={limit} mine={true} draftOnly={draftOnly} sort={sort} status={statusParam} assigneeOptions={assigneeOptions} assignee={assigneeParam ?? null} query={q} />
       {rows.length === 0 && (
         <p className="text-sm leading-relaxed text-muted-foreground">No posts found.</p>
       )}

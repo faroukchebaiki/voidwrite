@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import '../styles/theme.css';
 import { ThemeProvider } from 'next-themes';
@@ -11,9 +11,78 @@ import { tags } from '@/db/schema';
 import { sql } from 'drizzle-orm';
 import { siteConfig } from '@/site';
 
+const siteUrl = siteConfig.url.replace(/\/$/, '');
+const metadataBase = new URL(siteConfig.url);
+const ogImageUrl = siteConfig.branding.ogImage.startsWith('http')
+  ? siteConfig.branding.ogImage
+  : `${siteUrl}${siteConfig.branding.ogImage.startsWith('/') ? '' : '/'}${siteConfig.branding.ogImage}`;
+const twitterHandle = (() => {
+  const handle = siteConfig.author.twitter;
+  if (!handle) return undefined;
+  if (handle.startsWith('@')) return handle;
+  return `@${handle.replace(/^https?:\/\/(www\.)?twitter\.com\//, '').replace(/\/.*/, '')}`;
+})();
+
 export const metadata: Metadata = {
-  title: siteConfig.title,
+  metadataBase,
+  title: {
+    default: siteConfig.title,
+    template: `%s — ${siteConfig.title}`,
+  },
   description: siteConfig.description,
+  keywords: siteConfig.keywords,
+  applicationName: siteConfig.title,
+  authors: [{ name: siteConfig.author.name, url: siteConfig.author.url }],
+  creator: siteConfig.author.name,
+  publisher: siteConfig.author.name,
+  category: 'Technology',
+  alternates: {
+    canonical: siteConfig.url,
+    types: {
+      'application/rss+xml': `${siteUrl}/rss.xml`,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: siteConfig.locale,
+    url: siteConfig.url,
+    siteName: siteConfig.title,
+    title: siteConfig.title,
+    description: siteConfig.description,
+    images: [
+      {
+        url: ogImageUrl,
+        width: 1200,
+        height: 630,
+        alt: `${siteConfig.title} social preview`,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: siteConfig.title,
+    description: siteConfig.description,
+    creator: twitterHandle,
+    site: twitterHandle,
+    images: [ogImageUrl],
+  },
+  icons: {
+    shortcut: '/favicon.ico',
+  },
+  other: {
+    tagline: siteConfig.tagline,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: siteConfig.branding.themeColorLight },
+    { media: '(prefers-color-scheme: dark)', color: siteConfig.branding.themeColorDark },
+  ],
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

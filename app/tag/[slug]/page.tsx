@@ -44,8 +44,12 @@ export async function generateMetadata({ params }: any) {
   return { title } as any;
 }
 
-export default async function TagPage({ params }: any) {
+export default async function TagPage({ params, searchParams }: { params: any; searchParams?: Promise<Record<string, string>> }) {
   const { slug } = await params;
+  const query = (await searchParams) || {};
+  const pageParam = Number(query.page ?? '1');
+  const pageSize = 8;
+
   const [tag] = await db.select().from(tags).where(eq(tags.slug, slug));
   if (!tag) notFound();
   const joins = await db
@@ -84,6 +88,17 @@ export default async function TagPage({ params }: any) {
   const allTags = await db.select().from(tags).orderBy(sql`${tags.name}`);
   const remoteHosts = new Set(['public.blob.vercel-storage.com', 'p06e0neae38vv52o.public.blob.vercel-storage.com']);
 
+  const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+  const currentPage = Math.min(Math.max(1, pageParam || 1), totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paged = list.slice(startIndex, startIndex + pageSize);
+
+  const basePath = `/tag/${slug}`;
+  const buildHref = (page: number) => {
+    if (page <= 1) return basePath;
+    return `${basePath}?page=${page}`;
+  };
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
       <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
@@ -93,7 +108,7 @@ export default async function TagPage({ params }: any) {
       </div>
       <div className="grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
         <section className="space-y-6">
-          {list.map((p) => {
+          {paged.map((p) => {
             const publishedDate = p.publishedAt ? new Date(p.publishedAt) : p.createdAt ? new Date(p.createdAt) : null;
             const dateLabel = publishedDate?.toLocaleDateString(undefined, {
               month: 'short',
@@ -161,7 +176,7 @@ export default async function TagPage({ params }: any) {
               </Link>
             );
           })}
-          {list.length === 0 && (
+          {paged.length === 0 && (
             <Card className="border-dashed text-center text-sm text-muted-foreground">
               <CardHeader>
                 <CardTitle className="text-lg">No posts found</CardTitle>
@@ -170,6 +185,44 @@ export default async function TagPage({ params }: any) {
                 </CardDescription>
               </CardHeader>
             </Card>
+          )}
+
+          {list.length > pageSize && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-6 text-sm text-muted-foreground">
+              <span>
+                Page {currentPage} of {totalPages}
+              </span>
+              <div className="flex items-center gap-2 text-foreground">
+                <Link
+                  href={buildHref(1)}
+                  className={`rounded-full border px-3 py-1 transition ${currentPage === 1 ? 'pointer-events-none opacity-50' : 'hover:bg-muted'}`}
+                  aria-disabled={currentPage === 1}
+                >
+                  First
+                </Link>
+                <Link
+                  href={buildHref(Math.max(1, currentPage - 1))}
+                  className={`rounded-full border px-3 py-1 transition ${currentPage === 1 ? 'pointer-events-none opacity-50' : 'hover:bg-muted'}`}
+                  aria-disabled={currentPage === 1}
+                >
+                  Previous
+                </Link>
+                <Link
+                  href={buildHref(Math.min(totalPages, currentPage + 1))}
+                  className={`rounded-full border px-3 py-1 transition ${currentPage === totalPages ? 'pointer-events-none opacity-50' : 'hover:bg-muted'}`}
+                  aria-disabled={currentPage === totalPages}
+                >
+                  Next
+                </Link>
+                <Link
+                  href={buildHref(totalPages)}
+                  className={`rounded-full border px-3 py-1 transition ${currentPage === totalPages ? 'pointer-events-none opacity-50' : 'hover:bg-muted'}`}
+                  aria-disabled={currentPage === totalPages}
+                >
+                  Last
+                </Link>
+              </div>
+            </div>
           )}
         </section>
         <aside className="space-y-6">
