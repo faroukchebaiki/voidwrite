@@ -14,8 +14,8 @@ const schema = z.object({
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-const TEAM_EMAIL = process.env.CONTACT_TO_ADDRESS || "hello@voidwrite.local";
-const FROM_EMAIL = process.env.CONTACT_FROM_ADDRESS || "Voidwrite <hello@voidwrite.local>";
+const TEAM_EMAIL = process.env.CONTACT_TO_ADDRESS || siteConfig.contact.email;
+const FROM_EMAIL = process.env.CONTACT_FROM_ADDRESS || siteConfig.contact.fromEmail;
 
 export async function POST(req: Request) {
   if (!resend) {
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
       from: FROM_EMAIL,
       to: [TEAM_EMAIL],
       subject: `[Contact] ${subject}`,
-      replyTo: email,
+      replyTo: email || siteConfig.contact.replyTo,
       text,
       html,
     });

@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SuspendedBanner } from "@/components/login-banner";
+import { siteConfig } from "@/site";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -28,6 +30,7 @@ export default function SignInPage() {
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [passkeyError, setPasskeyError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -77,18 +80,18 @@ export default function SignInPage() {
       <div className="flex flex-col justify-between bg-muted px-8 py-10 text-muted-foreground">
         <div className="max-w-sm space-y-6">
           <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium tracking-widest uppercase">
-            Voidwrite Studio
+            {siteConfig.studio.badgeLabel}
           </span>
           <h1 className="font-heading text-4xl font-semibold text-foreground">
-            Welcome back to your editorial desk
+            {siteConfig.copy.auth.signInHeadline}
           </h1>
           <p className="text-sm leading-relaxed">
-            Sign in to manage posts, assign stories, and keep the newsroom moving. Collaborate with your team in real time and publish with confidence.
+            {siteConfig.copy.auth.signInDescription}
           </p>
         </div>
         <div className="space-y-2 text-xs">
           <p>Need an account? <Link href="/signup" className="font-medium text-foreground underline">Request access</Link></p>
-          <p className="text-muted-foreground/80">Protected workspace for Voidwrite contributors.</p>
+          <p className="text-muted-foreground/80">{siteConfig.copy.auth.signInFooter}</p>
         </div>
       </div>
       <div className="flex items-center justify-center px-4 py-12 sm:px-8">
@@ -96,7 +99,7 @@ export default function SignInPage() {
           <CardHeader className="space-y-2 text-center">
             <CardTitle className="font-heading text-3xl">Sign in</CardTitle>
             <CardDescription>
-              Use your credentials to access the Voidwrite studio.
+              Use your credentials to access the {siteConfig.studio.name}.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -113,19 +116,30 @@ export default function SignInPage() {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   required
-                  placeholder="you@voidwrite.com"
+                  placeholder="you@example.com"
                 />
               </div>
               <div className="space-y-2 text-left">
                 <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    maxLength={100}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 <div className="text-right text-xs">
                   <Link href="/reset-password" className="text-foreground underline">Forgot password?</Link>
                 </div>
@@ -157,10 +171,10 @@ export default function SignInPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-2 text-sm text-muted-foreground">
             <p>
-              New to Voidwrite? <Link href="/signup" className="text-foreground underline">Create an account</Link>
+              New to {siteConfig.title}? <Link href="/signup" className="text-foreground underline">Create an account</Link>
             </p>
             <p className="text-xs">
-              By continuing, you agree to the Voidwrite Terms and acknowledge our Privacy Policy.
+              {siteConfig.copy.auth.signInLegal}
             </p>
           </CardFooter>
         </Card>

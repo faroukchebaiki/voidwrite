@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import sharp from "sharp";
 import { IMAGE_ALLOWED_TYPES, IMAGE_UPLOAD_MAX_BYTES, IMAGE_VARIANT_WIDTHS } from "@/lib/uploads";
+import { requireStaff } from "@/lib/auth-helpers";
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  const user = await requireStaff();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   const form = await req.formData();
   const file = form.get('file');
   if (!(file instanceof File)) return NextResponse.json({ error: 'No file' }, { status: 400 });

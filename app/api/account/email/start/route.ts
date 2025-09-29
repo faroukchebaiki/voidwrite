@@ -13,7 +13,7 @@ import { siteConfig } from "@/site";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
-const EMAIL_FROM = process.env.CONTACT_FROM_ADDRESS || "Voidwrite <hello@voidwrite.local>";
+const EMAIL_FROM = process.env.CONTACT_FROM_ADDRESS || siteConfig.contact.fromEmail;
 const EXPIRATION_MINUTES = 15;
 
 function generateCode() {

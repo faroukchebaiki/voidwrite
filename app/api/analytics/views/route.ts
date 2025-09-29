@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { dailyPostViews, posts } from '@/db/schema';
+import { requireStaff } from '@/lib/auth-helpers';
 
 export async function GET(req: Request) {
+  const user = await requireStaff();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   const url = new URL(req.url);
   const range = Number(url.searchParams.get('range') || '7');
   const all = await db.select().from(dailyPostViews);

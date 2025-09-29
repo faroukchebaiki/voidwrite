@@ -1,17 +1,19 @@
 import Link from 'next/link';
 
+import { siteConfig } from '@/site';
+
 export const metadata = {
-  title: 'Privacy Policy — Voidwrite',
-  description: 'How Voidwrite collects, uses, and stores data while you read or publish on the platform.',
+  title: `${siteConfig.legal.privacyTitle} — ${siteConfig.title}`,
+  description: siteConfig.legal.privacyDescription,
 };
 
 export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-16">
-      <h1 className="font-heading text-4xl font-semibold text-foreground">Privacy Policy</h1>
+      <h1 className="font-heading text-4xl font-semibold text-foreground">{siteConfig.legal.privacyTitle}</h1>
       <p className="mt-4 text-muted-foreground">
-        We respect the writers, editors, and readers who make Voidwrite possible. This privacy policy explains
-        what data we collect, why we collect it, and how we use it.
+        We respect the writers, editors, and readers who make {siteConfig.title} possible. This privacy policy
+        explains what data we collect, why we collect it, and how we use it.
       </p>
 
       <section className="mt-10 space-y-6 text-sm leading-relaxed text-muted-foreground">
@@ -43,8 +45,9 @@ export default function PrivacyPage() {
           <h2 className="font-semibold text-foreground">Your choices</h2>
           <p>
             You can request a copy of your data, ask us to delete it, or update your profile from the studio
-            settings. Email <a href="mailto:me@farouk.uk" className="underline">me@farouk.uk</a> if you have any
-            questions or need help managing your privacy.
+            settings. Email{' '}
+            <a href={`mailto:${siteConfig.contact.email}`} className="underline">{siteConfig.contact.email}</a> if
+            you have any questions or need help managing your privacy.
           </p>
         </div>
         <div>

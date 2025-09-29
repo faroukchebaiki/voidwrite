@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+export const passwordComplexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/;
+export const PASSWORD_COMPLEXITY_MESSAGE =
+  "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.";
+
 const basePostSchema = z.object({
   title: z.string().max(200).optional().nullable(),
   slug: z
@@ -86,7 +90,11 @@ export const tagSchema = z.object({
 export const signupSchema = z.object({
   name: z.string().min(1).max(120).optional().nullable(),
   email: z.string().email(),
-  password: z.string().min(8).max(100),
+  password: z
+    .string()
+    .min(8)
+    .max(100)
+    .regex(passwordComplexityRegex, PASSWORD_COMPLEXITY_MESSAGE),
   inviteCode: z.string().min(6).max(64).optional(),
 });
 
@@ -107,7 +115,11 @@ export const emailChangeConfirmSchema = z.object({
 
 export const passwordChangeSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(8).max(100),
+  newPassword: z
+    .string()
+    .min(8)
+    .max(100)
+    .regex(passwordComplexityRegex, PASSWORD_COMPLEXITY_MESSAGE),
 });
 
 export const passwordResetStartSchema = z.object({
@@ -117,7 +129,11 @@ export const passwordResetStartSchema = z.object({
 export const passwordResetConfirmSchema = z.object({
   email: z.string().email(),
   code: z.string().min(4).max(10),
-  newPassword: z.string().min(8).max(100),
+  newPassword: z
+    .string()
+    .min(8)
+    .max(100)
+    .regex(passwordComplexityRegex, PASSWORD_COMPLEXITY_MESSAGE),
 });
 
 export const assignPostSchema = z.object({

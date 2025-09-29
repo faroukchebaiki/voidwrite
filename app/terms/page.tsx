@@ -1,16 +1,18 @@
 import Link from 'next/link';
 
+import { siteConfig } from '@/site';
+
 export const metadata = {
-  title: 'Terms of Service — Voidwrite',
-  description: 'The rules of the road for publishing, collaborating, and reading on Voidwrite.',
+  title: `${siteConfig.legal.termsTitle} — ${siteConfig.title}`,
+  description: siteConfig.legal.termsDescription,
 };
 
 export default function TermsPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-16">
-      <h1 className="font-heading text-4xl font-semibold text-foreground">Terms of Service</h1>
+      <h1 className="font-heading text-4xl font-semibold text-foreground">{siteConfig.legal.termsTitle}</h1>
       <p className="mt-4 text-muted-foreground">
-        These terms keep Voidwrite running smoothly for contributors, editors, and readers alike. By using the
+        These terms keep {siteConfig.title} running smoothly for contributors, editors, and readers alike. By using the
         site you agree to the responsibilities outlined here.
       </p>
 
@@ -18,7 +20,7 @@ export default function TermsPage() {
         <div>
           <h2 className="font-semibold text-foreground">Your content</h2>
           <p>
-            You retain ownership of anything you publish on Voidwrite. By submitting work, you grant us a
+            You retain ownership of anything you publish on {siteConfig.title}. By submitting work, you grant us a
             non-exclusive license to host, display, and distribute it on our platforms. You are responsible for
             ensuring your content does not infringe on anyone else&apos;s rights.
           </p>
@@ -41,7 +43,7 @@ export default function TermsPage() {
         <div>
           <h2 className="font-semibold text-foreground">Third-party services</h2>
           <p>
-            Voidwrite relies on trusted providers for hosting, analytics, and communication. Their respective
+            {siteConfig.title} relies on trusted providers for hosting, analytics, and communication. Their respective
             terms also apply; we list them in the privacy policy. We only work with services that align with our
             values and security standards.
           </p>
@@ -50,7 +52,7 @@ export default function TermsPage() {
           <h2 className="font-semibold text-foreground">Changes</h2>
           <p>
             We may update these terms to reflect new features or legal requirements. Significant changes will be
-            announced on the blog, and continued use of Voidwrite constitutes acceptance of the updated terms.
+            announced on the blog, and continued use of {siteConfig.title} constitutes acceptance of the updated terms.
           </p>
         </div>
       </section>

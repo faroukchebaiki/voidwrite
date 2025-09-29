@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { requireStaff } from "@/lib/auth-helpers";
 
 export async function GET() {
@@ -15,9 +15,17 @@ export async function GET() {
 export async function POST(req: Request) {
   const user = await requireStaff();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
+  const uid = (user as any).id as string;
   const { ids } = await req.json().catch(() => ({ ids: [] }));
   if (!Array.isArray(ids) || ids.length === 0) return NextResponse.json({ ok: true });
   const now = new Date();
-  await Promise.all(ids.map((id: number) => db.update(notifications).set({ readAt: now as any }).where(eq(notifications.id, id))));
+  await Promise.all(
+    ids.map((id: number) =>
+      db
+        .update(notifications)
+        .set({ readAt: now as any })
+        .where(and(eq(notifications.id, id), eq(notifications.userId, uid)))
+    )
+  );
   return NextResponse.json({ ok: true });
 }

@@ -31,7 +31,7 @@ export function renderWeeklyDigestEmail(posts: DigestPost[], opts: { rangeLabel:
       const cover = toAbsoluteUrl(post.coverImageUrl) ?? toAbsoluteUrl(siteConfig.branding.ogImage);
       const postUrl = `${baseUrl}/posts/${post.slug}`;
       const position = index + 1;
-      const excerpt = post.excerpt?.trim() || 'Tap through to read the full story on Voidwrite.';
+      const excerpt = post.excerpt?.trim() || siteConfig.copy.newsletter.excerptFallback;
       const published = post.publishedAt
         ? new Date(post.publishedAt).toLocaleDateString(siteConfig.locale, { month: 'short', day: 'numeric', year: 'numeric' })
         : undefined;
@@ -63,7 +63,7 @@ export function renderWeeklyDigestEmail(posts: DigestPost[], opts: { rangeLabel:
 
   const textLines = posts.length
     ? posts.map((post, index) => `${index + 1}. ${post.title} — ${baseUrl}/posts/${post.slug}`)
-    : ['Quiet week, but more stories are in the works.'];
+    : [siteConfig.copy.newsletter.quietWeek];
   const text = renderPlainTextEmail({
     heading,
     bodyLines: [intro, '', ...textLines, opts.unsubscribeUrl ? `Unsubscribe: ${opts.unsubscribeUrl}` : ''],

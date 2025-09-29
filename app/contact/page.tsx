@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ContactForm } from "@/components/ContactForm";
+import { siteConfig } from "@/site";
 
 export const metadata: Metadata = {
-  title: "Contact | Voidwrite",
-  description: "Reach out to the Voidwrite team with story ideas, feedback, or collaboration requests.",
+  title: `Contact | ${siteConfig.title}`,
+  description: siteConfig.copy.marketing.contactDescription,
 };
 
 export default function ContactPage() {
@@ -15,10 +16,10 @@ export default function ContactPage() {
           Contact
         </span>
         <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-          We&apos;d love to hear from you
+          {siteConfig.copy.marketing.contactHeadline}
         </h1>
         <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Whether you have publishing questions, feedback about our stories, or you&apos;d like to collaborate with the Voidwrite team, drop us a note and we&apos;ll get back to you as soon as we can.
+          {siteConfig.copy.marketing.contactDescription}
         </p>
       </div>
       <Card className="border-border/70 shadow-sm">

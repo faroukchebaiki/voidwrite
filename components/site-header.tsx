@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { MoreVertical } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { siteConfig } from "@/site";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -24,7 +25,7 @@ export function SiteHeader() {
   const [highlightSave, setHighlightSave] = useState(false);
   const breadcrumbs = useMemo(() => {
     const items: Array<{ label: string; href: string }> = [
-      { label: "Voidwrite Studio", href: "/studio" },
+      { label: siteConfig.studio.name, href: "/studio" },
     ];
     if (!pathname || pathname === "/studio") return items;
     const segments = pathname.split("/").filter(Boolean);

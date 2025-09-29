@@ -12,7 +12,7 @@ import { siteConfig } from "@/site";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
-const VERIFY_FROM = process.env.CONTACT_FROM_ADDRESS || "Voidwrite <hello@voidwrite.local>";
+const VERIFY_FROM = process.env.CONTACT_FROM_ADDRESS || siteConfig.contact.fromEmail;
 
 function generateCode() {
   const min = 100000;

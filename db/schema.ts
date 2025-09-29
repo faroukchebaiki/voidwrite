@@ -1,5 +1,7 @@
 import { pgTable, text, timestamp, integer, serial, pgEnum, boolean, primaryKey, uniqueIndex, json } from "drizzle-orm/pg-core";
 
+import { siteConfig } from "@/site";
+
 // Roles for CMS
 export const userRole = pgEnum("user_role", ["admin", "editor"]);
 
@@ -70,7 +72,7 @@ export const postTags = pgTable("post_tags", {
 // Site settings (single row)
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
-  siteTitle: text("site_title").notNull().default("Voidwrite"),
+  siteTitle: text("site_title").notNull().default(siteConfig.title),
   siteDescription: text("site_description"),
   theme: text("theme").default("system"),
   createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),

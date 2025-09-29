@@ -23,8 +23,8 @@ export default async function MemberProfile({ params }: any) {
     .orderBy(desc(posts.updatedAt));
   const drafts = authored.filter((p: any) => String(p.status) === "draft");
   const published = authored.filter((p: any) => String(p.status) === "published");
-  const username = (u.email || "").split("@")[0];
-  const fallbackName = u.name || username;
+  const profileUsername = (profile?.username ?? '').toString().trim();
+  const fallbackName = u.name || profileUsername || (u.email ? u.email.split('@')[0] : 'Member');
   const [rawFirst, ...remaining] = (fallbackName || "").split(" ");
   const fallbackLast = remaining.join(" ");
   const formatSegment = (value: string | null | undefined) => {
@@ -32,9 +32,9 @@ export default async function MemberProfile({ params }: any) {
     if (!segment) return "";
     return segment.charAt(0).toUpperCase() + segment.slice(1);
   };
-  const first = formatSegment(profile?.firstName || rawFirst || username);
+  const first = formatSegment(profile?.firstName || rawFirst || profileUsername || (u.email ? u.email.split('@')[0] : ''));
   const last = formatSegment(profile?.lastName || fallbackLast);
-  const displayName = [first, last].filter(Boolean).join(" ") || formatSegment(username) || "Member";
+  const displayName = [first, last].filter(Boolean).join(" ") || formatSegment(profileUsername) || (u.email || 'Member');
   const avatar = u.image || "https://github.com/shadcn.png";
   // Build transfer options (all other users)
   const everyone = await db.select().from(users);
@@ -49,7 +49,7 @@ export default async function MemberProfile({ params }: any) {
         <img src={avatar} alt={displayName} className="h-20 w-20 rounded-full border object-cover" />
         <div>
           <div className="text-2xl font-semibold">{displayName}</div>
-          <div className="text-sm text-muted-foreground">@{username} · {u.email}</div>
+          <div className="text-sm text-muted-foreground">@{profileUsername || 'no username'} · {u.email}</div>
         </div>
       </div>
       <AdminControls

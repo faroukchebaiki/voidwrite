@@ -187,7 +187,7 @@ const submitSearch = async (event: React.FormEvent<HTMLFormElement>) => {
         <div className="mx-auto max-w-6xl px-4 py-6">
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
             <Link href="/" className="font-logo text-4xl text-foreground sm:text-5xl" aria-label={`${siteTitle} home`}>
-              {siteTitle || 'Voidwrite'}
+              {siteTitle || siteConfig.title}
             </Link>
             <div className="flex items-center gap-2 sm:gap-3">
               {SOCIAL_LINKS.map(({ href, label, icon: Icon }) => (
@@ -222,7 +222,7 @@ const submitSearch = async (event: React.FormEvent<HTMLFormElement>) => {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-full max-w-xs bg-background/90 backdrop-blur">
-                <SheetTitle className="sr-only">{siteTitle || 'Voidwrite'} navigation</SheetTitle>
+                <SheetTitle className="sr-only">{siteTitle || siteConfig.title} navigation</SheetTitle>
                 <div className="flex h-full flex-col gap-6 overflow-y-auto py-4">
                   <div className="space-y-2 text-center">
                     <Link
@@ -230,7 +230,7 @@ const submitSearch = async (event: React.FormEvent<HTMLFormElement>) => {
                       onClick={() => setSheetOpen(false)}
                       className="block font-logo text-4xl text-foreground"
                     >
-                      {siteTitle || 'Voidwrite'}
+                      {siteTitle || siteConfig.title}
                     </Link>
                     {siteConfig.tagline ? (
                       <p className="text-sm text-muted-foreground">{siteConfig.tagline}</p>
@@ -286,7 +286,7 @@ const submitSearch = async (event: React.FormEvent<HTMLFormElement>) => {
                     </nav>
                   </div>
                   <div className="mt-auto space-y-2 text-center text-xs text-muted-foreground">
-                    <p>© {currentYear} {siteTitle || 'Voidwrite'}</p>
+                    <p>© {currentYear} {siteTitle || siteConfig.title}</p>
                   </div>
                 </div>
               </SheetContent>

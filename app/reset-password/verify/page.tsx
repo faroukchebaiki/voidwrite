@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { siteConfig } from "@/site";
+import { passwordComplexityRegex, PASSWORD_COMPLEXITY_MESSAGE } from "@/lib/validation";
 
-const STORAGE_KEY = "voidwrite-reset";
+const STORAGE_KEY = `${siteConfig.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-reset`;
 
 export default function VerifyResetPage() {
   const searchParams = useSearchParams();
@@ -29,6 +31,10 @@ export default function VerifyResetPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [confirmTouched, setConfirmTouched] = useState(false);
+  const passwordIsValid = passwordComplexityRegex.test(newPassword);
+  const passwordsMatch = confirmPassword.length === 0 || newPassword === confirmPassword;
 
   useEffect(() => {
     try {
@@ -50,6 +56,11 @@ export default function VerifyResetPage() {
     event.preventDefault();
     if (!email) {
       setError('Reset session expired. Start again.');
+      return;
+    }
+    if (!passwordComplexityRegex.test(newPassword)) {
+      setPasswordTouched(true);
+      setError(PASSWORD_COMPLEXITY_MESSAGE);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -129,9 +140,14 @@ export default function VerifyResetPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
+                onBlur={() => setPasswordTouched(true)}
+                maxLength={100}
                 required
-                minLength={8}
               />
+              <p className="text-xs text-muted-foreground">{siteConfig.copy.settings.passwordHint}</p>
+              {passwordTouched && !passwordIsValid && (
+                <p className="text-xs text-destructive">{PASSWORD_COMPLEXITY_MESSAGE}</p>
+              )}
             </div>
             <div className="space-y-2 text-left">
               <label htmlFor="reset-password-confirm" className="text-sm font-medium">Confirm password</label>
@@ -140,9 +156,13 @@ export default function VerifyResetPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
+                onBlur={() => setConfirmTouched(true)}
+                maxLength={100}
                 required
-                minLength={8}
               />
+              {confirmTouched && newPassword !== confirmPassword && (
+                <p className="text-xs text-destructive">Passwords must match.</p>
+              )}
             </div>
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <label className="inline-flex items-center gap-2">
@@ -158,7 +178,17 @@ export default function VerifyResetPage() {
               </button>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading || code.length < 4}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={
+                loading ||
+                code.length < 4 ||
+                !passwordIsValid ||
+                !confirmPassword ||
+                !passwordsMatch
+              }
+            >
               {loading ? 'Updating…' : 'Update password'}
             </Button>
           </form>

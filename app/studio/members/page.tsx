@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 
 type Member = {
   id: string;
-  name: string | null;
+  displayName: string;
   email: string | null;
   image: string | null;
   role: string;
@@ -32,22 +32,34 @@ export default async function MembersPage() {
     .groupBy(posts.authorId);
   const countMap = new Map<string, number>(counts.map((r: any) => [r.authorId as string, Number(r.cnt)]));
 
-  const members: Member[] = raw.map((row: any) => ({
-    id: row.u.id,
-    name: row.u.name,
-    email: row.u.email,
-    image: row.u.image,
-    role: row.p?.role ?? "editor",
-    publishedCount: countMap.get(row.u.id) ?? 0,
-  }));
+  const members: Member[] = raw.map((row: any) => {
+    const profile = row.p;
+    const firstLast = [profile?.firstName, profile?.lastName]
+      .filter((segment) => (segment ?? '').toString().trim().length > 0)
+      .join(' ')
+      .trim();
+    const userName = (row.u.name ?? '').toString().trim();
+    const fallbackEmailName = row.u.email || 'Member';
+    const username = (profile?.username ?? '').toString().trim();
+    const displayName = firstLast || userName || username || fallbackEmailName;
+    return {
+      id: row.u.id,
+      displayName,
+      email: row.u.email,
+      image: row.u.image,
+      role: profile?.role ?? 'editor',
+      publishedCount: countMap.get(row.u.id) ?? 0,
+    };
+  });
 
   const admins = members.filter((m) => m.role === "admin");
   const authors = members.filter((m) => m.role !== "admin");
 
   const Item = ({ m }: { m: Member }) => {
-    const name = m.name || (m.email ? m.email.split("@")[0] : "User");
-    const [first, ...rest] = name.split(" ");
-    const last = rest.join(" ");
+    const name = m.displayName;
+    const tokens = name.split(' ').filter(Boolean);
+    const first = tokens[0] || name;
+    const last = tokens.slice(1).join(' ');
     const avatar = m.image || "https://github.com/shadcn.png";
     return (
       <Link href={`/studio/members/${m.id}`} className="flex items-center justify-between rounded border p-3 hover:bg-muted/40">
@@ -55,7 +67,7 @@ export default async function MembersPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={avatar} alt={name} className="h-10 w-10 rounded-full border object-cover" />
           <div>
-            <div className="font-medium">{first} {last}</div>
+            <div className="font-medium">{last ? `${first} ${last}` : first}</div>
             <div className="text-xs text-muted-foreground">{m.email}</div>
           </div>
         </div>
@@ -74,11 +86,11 @@ export default async function MembersPage() {
             {admins.length === 0 && <div className="text-sm text-muted-foreground">No admins.</div>}
             {admins.map((m) => (
               <div key={m.id} className="flex items-center justify-between rounded border p-3">
-                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.image || "https://github.com/shadcn.png"} alt={m.name || ''} className="h-10 w-10 rounded-full border object-cover" />
+                  <img src={m.image || "https://github.com/shadcn.png"} alt={m.displayName} className="h-10 w-10 rounded-full border object-cover" />
                   <div>
-                    <div className="font-medium">{m.name || (m.email ? m.email.split('@')[0] : 'Admin')}</div>
+                    <div className="font-medium">{m.displayName}</div>
                     <div className="text-xs text-muted-foreground">{m.email}</div>
                   </div>
                 </div>

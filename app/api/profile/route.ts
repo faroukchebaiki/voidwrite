@@ -35,44 +35,52 @@ export async function PUT(req: Request) {
     firstName: data.firstName ?? null,
     lastName: data.lastName ?? null,
     bio: data.bio ?? null,
-      link: data.link ?? null,
-      username: data.username ?? null,
-    };
+    link: data.link ?? null,
+    username: data.username ?? null,
+  };
   const avatarProvided = Object.prototype.hasOwnProperty.call(data, 'avatarUrl');
   const normalizedAvatar = avatarProvided
     ? (data.avatarUrl ? data.avatarUrl.trim() : null)
     : undefined;
 
-  const action = await db.transaction(async (tx) => {
-    const [updated] = await tx
-      .update(profiles)
-      .set(payload)
-      .where(eq(profiles.userId, uid))
-      .returning();
-
-    let profileRow = updated;
-
-    if (!updated) {
-      const [created] = await tx
-        .insert(profiles)
-        .values({
-          userId: uid,
-          role: 'editor' as any,
-          ...payload,
-        })
+  try {
+    const action = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(profiles)
+        .set(payload)
+        .where(eq(profiles.userId, uid))
         .returning();
-      profileRow = created;
+
+      let profileRow = updated;
+
+      if (!updated) {
+        const [created] = await tx
+          .insert(profiles)
+          .values({
+            userId: uid,
+            role: 'editor' as any,
+            ...payload,
+          })
+          .returning();
+        profileRow = created;
+      }
+
+      if (avatarProvided) {
+        await tx
+          .update(users)
+          .set({ image: normalizedAvatar ?? null })
+          .where(eq(users.id, uid));
+      }
+
+      return profileRow;
+    });
+
+    return NextResponse.json({ success: true, profile: action, message: 'Profile saved' });
+  } catch (error: any) {
+    if (error?.code === '23505') {
+      return NextResponse.json({ error: 'Username already taken.' }, { status: 409 });
     }
-
-    if (avatarProvided) {
-      await tx
-        .update(users)
-        .set({ image: normalizedAvatar ?? null })
-        .where(eq(users.id, uid));
-    }
-
-    return profileRow;
-  });
-
-  return NextResponse.json({ success: true, profile: action, message: 'Profile saved' });
+    console.error('Failed to save profile', error);
+    return NextResponse.json({ error: 'Failed to save profile.' }, { status: 500 });
+  }
 }

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+import { siteConfig } from "@/site";
+
 import {
   Card,
   CardContent,
@@ -15,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const STORAGE_KEY = "voidwrite-reset";
+const STORAGE_KEY = `${siteConfig.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-reset`;
 
 export default function ResetPasswordPage() {
   const router = useRouter();

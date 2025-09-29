@@ -21,11 +21,13 @@ const withinRange = (value: Date | null, start: Date, end: Date) => {
 };
 
 export async function POST(request: Request) {
-  if (digestSecret) {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || authHeader !== `Bearer ${digestSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  if (!digestSecret || digestSecret.length === 0) {
+    return NextResponse.json({ error: 'NEWSLETTER_DIGEST_SECRET is not configured.' }, { status: 500 });
+  }
+
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader || authHeader !== `Bearer ${digestSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   if (!resend) {

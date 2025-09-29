@@ -15,29 +15,62 @@ import { HomeFeed, type HomeFeedPost } from "@/components/HomeFeed";
 import StayInLoopCard from "@/components/articles/StayInLoopCard";
 import TopPostsCard from "@/components/articles/TopPostsCard";
 
+type PostRow = typeof posts.$inferSelect;
+type TagRow = typeof tags.$inferSelect;
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 30;
 
 export default async function Home({ searchParams }: { searchParams?: Promise<Record<string, string>> }) {
-  const allPosts = await db
-    .select()
-    .from(posts)
-    .where(eq(posts.status, "published" as any))
-    .orderBy(desc(posts.publishedAt ?? posts.createdAt));
-  const allTags = await db.select().from(tags).orderBy(sql`${tags.name}`);
-  const authorIds = Array.from(new Set(allPosts.map((p) => p.authorId).filter(Boolean))) as string[];
+  let allPosts: PostRow[] = [];
+  let allTags: TagRow[] = [];
   let authorProfiles: { userId: string; firstName: string | null; lastName: string | null }[] = [];
   let authorUsers: { id: string; name: string | null; email: string | null }[] = [];
-  if (authorIds.length) {
-    authorProfiles = await db
-      .select({ userId: profiles.userId, firstName: profiles.firstName, lastName: profiles.lastName })
-      .from(profiles)
-      .where(inArray(profiles.userId, authorIds));
-    authorUsers = await db
-      .select({ id: users.id, name: users.name, email: users.email })
-      .from(users)
-      .where(inArray(users.id, authorIds));
+  let weeklyLeaderboard: { postId: number; total: number | null }[] = [];
+
+  const weeklyDays: string[] = [];
+  const today = new Date();
+  for (let i = 0; i < 7; i += 1) {
+    const day = new Date(today);
+    day.setDate(today.getDate() - i);
+    weeklyDays.push(day.toISOString().slice(0, 10));
   }
+
+  if (process.env.DATABASE_URL) {
+    try {
+      allPosts = await db
+        .select()
+        .from(posts)
+        .where(eq(posts.status, "published" as any))
+        .orderBy(desc(posts.publishedAt ?? posts.createdAt));
+
+      allTags = await db.select().from(tags).orderBy(sql`${tags.name}`);
+
+      const authorIds = Array.from(new Set(allPosts.map((p) => p.authorId).filter(Boolean))) as string[];
+      if (authorIds.length) {
+        authorProfiles = await db
+          .select({ userId: profiles.userId, firstName: profiles.firstName, lastName: profiles.lastName })
+          .from(profiles)
+          .where(inArray(profiles.userId, authorIds));
+        authorUsers = await db
+          .select({ id: users.id, name: users.name, email: users.email })
+          .from(users)
+          .where(inArray(users.id, authorIds));
+      }
+
+      const totalViews = sql<number>`sum(${dailyPostViews.count})`.as('total');
+      weeklyLeaderboard = await db
+        .select({ postId: dailyPostViews.postId, total: totalViews })
+        .from(dailyPostViews)
+        .where(inArray(dailyPostViews.day, weeklyDays))
+        .groupBy(dailyPostViews.postId)
+        .orderBy(desc(totalViews))
+        .limit(7);
+    } catch (error) {
+      console.error('Failed to load home page data', error);
+    }
+  }
+
   const authorNameMap = new Map<string, string>();
   for (const profile of authorProfiles) {
     const formatted = toTitleCase([profile.firstName, profile.lastName].filter(Boolean).join(' '));
@@ -48,6 +81,7 @@ export default async function Home({ searchParams }: { searchParams?: Promise<Re
     const formatted = toTitleCase(user.name || '') || user.email || '';
     if (formatted) authorNameMap.set(user.id, formatted);
   }
+
   const paramsObj = (await searchParams) || {};
   const qParam = paramsObj.q || '';
   const pageParam = paramsObj.page;
@@ -65,23 +99,6 @@ export default async function Home({ searchParams }: { searchParams?: Promise<Re
     authorId: post.authorId,
   }));
   const authorEntriesSerialized = Array.from(authorNameMap.entries());
-
-  const weeklyDays: string[] = [];
-  const today = new Date();
-  for (let i = 0; i < 7; i += 1) {
-    const day = new Date(today);
-    day.setDate(today.getDate() - i);
-    weeklyDays.push(day.toISOString().slice(0, 10));
-  }
-
-  const totalViews = sql<number>`sum(${dailyPostViews.count})`.as('total');
-  const weeklyLeaderboard = await db
-    .select({ postId: dailyPostViews.postId, total: totalViews })
-    .from(dailyPostViews)
-    .where(inArray(dailyPostViews.day, weeklyDays))
-    .groupBy(dailyPostViews.postId)
-    .orderBy(desc(totalViews))
-    .limit(7);
 
   const postsById = new Map(allPosts.map((post) => [post.id, post]));
   let mostViewedThisWeek = weeklyLeaderboard

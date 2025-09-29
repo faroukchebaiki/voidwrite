@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { siteConfig } from "@/site";
 
 type StoredSignup = {
   email: string;
@@ -23,7 +24,7 @@ type StoredSignup = {
   inviteCode?: string | null;
 };
 
-const STORAGE_KEY = "voidwrite-signup";
+const STORAGE_KEY = `${siteConfig.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-signup`;
 
 export default function VerifySignupPage() {
   const searchParams = useSearchParams();
@@ -57,7 +58,7 @@ export default function VerifySignupPage() {
 
   useEffect(() => {
     if (!email) return;
-    document.title = `Verify ${email} | Voidwrite`;
+    document.title = `Verify ${email} | ${siteConfig.title}`;
   }, [email]);
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

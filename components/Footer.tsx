@@ -1,6 +1,9 @@
 "use client";
-import { usePathname } from 'next/navigation';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+import { siteConfig } from '@/site';
 
 export default function Footer() {
   const pathname = usePathname();
@@ -10,7 +13,8 @@ export default function Footer() {
     pathname === '/signup';
   if (hideFooter) return null;
 
-  const year = new Date().getFullYear();
+  const projectDescription = siteConfig.project?.description;
+
   const resourceLinks = [
     { href: '/privacy', label: 'Privacy Policy', external: false },
     { href: '/terms', label: 'Terms of Service', external: false },
@@ -23,22 +27,10 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-12">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4">
-            <Link href="/" className="font-heading text-2xl font-semibold">Voidwrite</Link>
+            <Link href="/" className="font-heading text-2xl font-semibold">{siteConfig.title}</Link>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              This blog is coded with ❤ by{' '}
-              <a
-                href="https://github.com/faroukchebaiki"
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
-                Farouk Chebaiki
-              </a>
-              . Built with Next.js and a rotating cast of modern tools. The code is open source—fork it, remix
-              it, or use it as a springboard for your own ideas.
-            </p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              © {year} Voidwrite.
+              {siteConfig.copy.footer.blurb}
+              {projectDescription ? ` ${projectDescription}` : ''}
             </p>
           </div>
           <div className="space-y-3">
@@ -72,22 +64,21 @@ export default function Footer() {
                   Contact
                 </Link>
               </li>
+              {siteConfig.project?.repositoryUrl ? (
+                <li>
+                  <a
+                    href={siteConfig.project.repositoryUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="transition-colors hover:text-foreground"
+                  >
+                    GitHub repo
+                  </a>
+                </li>
+              ) : null}
               <li>
-                <a
-                  href="https://github.com/faroukchebaiki/voidwrite"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="transition-colors hover:text-foreground"
-                >
-                  GitHub repo
-                </a>
-              </li>
-              <li>
-                <a
-                  href="mailto:me@farouk.uk"
-                  className="transition-colors hover:text-foreground"
-                >
-                  me@farouk.uk
+                <a href={`mailto:${siteConfig.contact.email}`} className="transition-colors hover:text-foreground">
+                  {siteConfig.contact.email}
                 </a>
               </li>
             </ul>
@@ -99,7 +90,7 @@ export default function Footer() {
               <Link href="/contact" className="underline">
                 Reach out
               </Link>
-              . Already part of Voidwrite?{' '}
+              . Already part of {siteConfig.title}?{' '}
               <Link href="/signin" className="underline">
                 Sign in
               </Link>
@@ -107,6 +98,7 @@ export default function Footer() {
             </p>
           </div>
         </div>
+        <div className="mt-10 text-center text-xs text-muted-foreground">© 2025 Voidwrite.</div>
       </div>
     </footer>
   );

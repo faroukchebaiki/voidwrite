@@ -120,8 +120,8 @@ export default async function PostPage({ params }: any) {
   const authorNameParts = [profile?.firstName?.trim(), profile?.lastName?.trim()].filter(Boolean) as string[];
   const rawAuthorName = authorNameParts.length > 0
     ? authorNameParts.join(' ')
-    : authorUser?.name?.trim() ?? 'Voidwrite Contributor';
-  const authorDisplayName = toTitleCase(rawAuthorName) || 'Voidwrite Contributor';
+    : authorUser?.name?.trim() ?? siteConfig.copy.misc.contributorFallback;
+  const authorDisplayName = toTitleCase(rawAuthorName) || siteConfig.copy.misc.contributorFallback;
   const authorBio = profile?.bio?.trim() || null;
   const authorImage = authorUser?.image?.trim() || null;
   const rawLink = profile?.link?.trim() || null;

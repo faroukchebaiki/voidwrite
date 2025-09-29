@@ -83,7 +83,7 @@ export async function GET(request: Request) {
                 boxShadow: `0 0 18px ${colors.accent}`,
               }}
             />
-            <span style={{ letterSpacing: '0.3em', textTransform: 'uppercase', fontSize: 18 }}>Voidwrite Studio</span>
+            <span style={{ letterSpacing: '0.3em', textTransform: 'uppercase', fontSize: 18 }}>{siteConfig.studio.name}</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
@@ -125,7 +125,7 @@ export async function GET(request: Request) {
             }}
           >
             <span>{footer}</span>
-            <span style={{ fontSize: 20 }}>© {new Date().getFullYear()} Voidwrite</span>
+            <span style={{ fontSize: 20 }}>© {new Date().getFullYear()} {siteConfig.legal.copyrightHolder}</span>
           </div>
         </div>
       </div>

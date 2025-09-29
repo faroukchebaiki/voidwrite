@@ -10,6 +10,8 @@ import { IMAGE_UPLOAD_MAX_BYTES } from "@/lib/uploads";
 import { startRegistration } from "@simplewebauthn/browser";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import { siteConfig } from "@/site";
+import { passwordComplexityRegex, PASSWORD_COMPLEXITY_MESSAGE } from "@/lib/validation";
 
 type Passkey = { credentialID: string; counter: number; label?: string | null };
 
@@ -630,6 +632,7 @@ const persistPasskeyLabel = async (credentialId: string, label?: string) => {
                         autoComplete="current-password"
                         autoCapitalize="none"
                         autoCorrect="off"
+                        maxLength={100}
                         spellCheck={false}
                         disabled={passwordStatus === 'verifying'}
                       />
@@ -738,7 +741,7 @@ const persistPasskeyLabel = async (credentialId: string, label?: string) => {
                         name="current-password"
                         type={showDeletePassword ? 'text' : 'password'}
                         className="w-full rounded-md border px-3 py-2 pr-10 text-sm"
-                      value={passwordInput}
+                        value={passwordInput}
                       onChange={(e) => {
                         setPasswordInput(e.target.value);
                         if (passwordStatus !== 'idle') {
@@ -746,9 +749,10 @@ const persistPasskeyLabel = async (credentialId: string, label?: string) => {
                           setPasswordError(null);
                         }
                       }}
-                      autoComplete="current-password"
-                      autoCapitalize="none"
-                      autoCorrect="off"
+                        autoComplete="current-password"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        maxLength={100}
                         spellCheck={false}
                         disabled={deleteProcessing}
                       />
@@ -891,6 +895,8 @@ function EmailPasswordClient({ initialEmail }: { initialEmail?: string }) {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [confirmTouched, setConfirmTouched] = useState(false);
 
   const resetPasswordDialog = () => {
     setPasswordDialogOpen(false);
@@ -902,10 +908,19 @@ function EmailPasswordClient({ initialEmail }: { initialEmail?: string }) {
     setShowCurrentPassword(false);
     setShowNewPassword(false);
     setShowConfirmPassword(false);
+    setPasswordTouched(false);
+    setConfirmTouched(false);
   };
 
   const handlePasswordChange = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setPasswordTouched(true);
+    setConfirmTouched(true);
+    if (!passwordComplexityRegex.test(newPassword)) {
+      setPasswordTouched(true);
+      setPasswordError(PASSWORD_COMPLEXITY_MESSAGE);
+      return;
+    }
     if (newPassword !== confirmPassword) {
       setPasswordError('New passwords do not match.');
       return;
@@ -955,7 +970,7 @@ function EmailPasswordClient({ initialEmail }: { initialEmail?: string }) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-sm font-medium text-foreground">Password</div>
-          <div className="text-sm text-muted-foreground">Use a strong password unique to Voidwrite.</div>
+          <div className="text-sm text-muted-foreground">{siteConfig.copy.settings.passwordHint}</div>
         </div>
         <Button variant="outline" onClick={() => setPasswordDialogOpen(true)}>
           Change password
@@ -1003,6 +1018,7 @@ function EmailPasswordClient({ initialEmail }: { initialEmail?: string }) {
                     onChange={(e) => setEmailPassword(e.target.value)}
                     required
                     autoComplete="current-password"
+                    maxLength={100}
                   />
                   <button
                     type="button"
@@ -1094,6 +1110,9 @@ function EmailPasswordClient({ initialEmail }: { initialEmail?: string }) {
             <DialogTitle>Change password</DialogTitle>
             <DialogDescription>Enter your current password and choose a new one.</DialogDescription>
           </DialogHeader>
+          {siteConfig.copy.settings.passwordHint && (
+            <p className="text-xs text-muted-foreground">{siteConfig.copy.settings.passwordHint}</p>
+          )}
           <form className="space-y-4" onSubmit={handlePasswordChange}>
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="current-password">Current password</label>
@@ -1104,6 +1123,7 @@ function EmailPasswordClient({ initialEmail }: { initialEmail?: string }) {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   autoComplete="current-password"
+                  maxLength={100}
                   required
                 />
                 <button
@@ -1124,7 +1144,9 @@ function EmailPasswordClient({ initialEmail }: { initialEmail?: string }) {
                   type={showNewPassword ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  onBlur={() => setPasswordTouched(true)}
                   autoComplete="new-password"
+                  maxLength={100}
                   required
                 />
                 <button
@@ -1136,6 +1158,9 @@ function EmailPasswordClient({ initialEmail }: { initialEmail?: string }) {
                   {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {passwordTouched && !passwordComplexityRegex.test(newPassword) && (
+                <p className="text-xs text-destructive">{PASSWORD_COMPLEXITY_MESSAGE}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="confirm-password">Confirm password</label>
@@ -1145,7 +1170,9 @@ function EmailPasswordClient({ initialEmail }: { initialEmail?: string }) {
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  onBlur={() => setConfirmTouched(true)}
                   autoComplete="new-password"
+                  maxLength={100}
                   required
                 />
                 <button
@@ -1157,13 +1184,25 @@ function EmailPasswordClient({ initialEmail }: { initialEmail?: string }) {
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {confirmTouched && newPassword !== confirmPassword && (
+                <p className="text-xs text-destructive">Passwords must match.</p>
+              )}
             </div>
             {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={resetPasswordDialog} disabled={passwordLoading}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={passwordLoading}>
+              <Button
+                type="submit"
+                disabled={
+                  passwordLoading ||
+                  !passwordComplexityRegex.test(newPassword) ||
+                  newPassword.length === 0 ||
+                  confirmPassword.length === 0 ||
+                  newPassword !== confirmPassword
+                }
+              >
                 {passwordLoading ? 'Updating…' : 'Update password'}
               </Button>
             </DialogFooter>

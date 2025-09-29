@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from './auth-middleware';
 import { getToken } from 'next-auth/jwt';
 
+const authSecret = process.env.AUTH_SECRET;
+if (!authSecret || authSecret.length < 32) {
+  throw new Error('AUTH_SECRET must be set and at least 32 characters long.');
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const token = await getToken({ req, secret: authSecret });
   // If a signed-in user visits signin/signup, send them to Studio
   if (pathname === '/signin' || pathname === '/signup') {
     if (token && (token as any).suspended) {
