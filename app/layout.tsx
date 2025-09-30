@@ -4,7 +4,7 @@ import '../styles/theme.css';
 import { ThemeProvider } from 'next-themes';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Analytics } from '@/lib/analytics';
+import { Analytics } from '@vercel/analytics/next';
 import { cookies, headers } from 'next/headers';
 import { db } from '@/db';
 import { tags } from '@/db/schema';
