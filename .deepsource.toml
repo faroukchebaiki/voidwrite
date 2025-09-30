@@ -1,0 +1,34 @@
+version = 1
+
+excludes = [
+  "node_modules/**",
+  ".next/**",
+  "out/**",
+  "build/**",
+  "drizzle/meta/**",
+  "tsconfig.tsbuildinfo"
+]
+
+[[analyzers]]
+name = "javascript"
+enabled = true
+
+  [analyzers.meta]
+  environment = ["browser", "nodejs"]
+  dialect = "typescript"
+  package_manager = "pnpm"
+
+  [[analyzers.modules]]
+  name = "eslint"
+  config = "eslint.config.mjs"
+
+[[analyzers]]
+name = "sql"
+enabled = true
+
+  [analyzers.meta]
+  dialects = ["postgresql"]
+
+[[transformers]]
+name = "prettier"
+enabled = true
