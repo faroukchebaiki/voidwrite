@@ -32,6 +32,18 @@ export default function SignInPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
+  const demoAccounts: Array<{ username: string; password: string; label?: string }> = [
+    { username: "beth", label: "beth (admin)", password: "1234567890" },
+    { username: "morty", password: "1234567890" },
+    { username: "jerry", password: "1234567890" },
+    { username: "samer", password: "1234567890" },
+  ];
+
+  const fillDemoCredentials = (username: string, demoPassword: string) => {
+    setEmail(username);
+    setPassword(demoPassword);
+  };
+
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
@@ -106,6 +118,23 @@ export default function SignInPage() {
             <SuspendedBanner error={searchParams.get("error")}
             />
             {searchParams.get("error") ? <div className="h-4" /> : null}
+            <div className="mb-4 space-y-2 rounded-md border border-dashed border-muted p-4">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                Demo accounts
+              </p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {demoAccounts.map((account) => (
+                  <Button
+                    key={account.username}
+                    type="button"
+                    variant="outline"
+                    onClick={() => fillDemoCredentials(account.username, account.password)}
+                  >
+                    {account.label ?? account.username}
+                  </Button>
+                ))}
+              </div>
+            </div>
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="space-y-2 text-left">
                 <Label htmlFor="email">Email or username</Label>
