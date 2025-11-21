@@ -1,4 +1,4 @@
-# Voidwrite — An Editorial Studio on Next.js 15
+# Voidwrite — An Editorial Studio on Next.js 16
 
 > Live production example: **https://voidwrite.farouk.uk/**  
 > Need help or have questions? **me@farouk.uk**
@@ -14,7 +14,7 @@ This repository contains the exact source used to run the public demo linked abo
 1. [Why Voidwrite?](#why-voidwrite)
 2. [Project Architecture](#project-architecture)
 3. [Branding & Customisation (`site.ts`)](#branding--customisation-sitets)
-4. [Screenshots & Feature Highlights](#screenshots--feature-highlights)
+4. [Feature Highlights](#feature-highlights)
 5. [Environment Variables](#environment-variables)
 6. [Getting Started Locally](#getting-started-locally)
 7. [Database & Drizzle ORM](#database--drizzle-orm)
@@ -45,7 +45,7 @@ Voidwrite aims to be that foundation. The project is intentionally opinionated b
 
 | Layer | Technologies | Notes |
 |-------|--------------|-------|
-| Frontend | Next.js 15 (App Router), React 19, Tailwind CSS v4 | Mix of server components and optimistic client interactions. |
+| Frontend | Next.js 16 (App Router), React 19, Tailwind CSS v4 | Mix of server components and optimistic client interactions. |
 | Auth | Auth.js v5 (credentials + passkeys), JWT strategy, Drizzle adapter | Works with WebAuthn out of the box. |
 | Database | Postgres (Neon / Vercel Postgres friendly) via Drizzle ORM | Schema lives in `db/schema.ts`; migrations generated via `drizzle-kit`. |
 | Styling | Tailwind CSS v4 + shadcn-inspired UI primitives | Dark/light aware, theme toggles stored in cookies. |
@@ -74,9 +74,7 @@ The README you are reading references these fields—set them once and deploy.
 
 ---
 
-## Screenshots & Feature Highlights
-
-*(Add your own screenshots here to showcase branding once you’ve customised the project.)*
+## Feature Highlights
 
 - **Home Page** – async server component aggregates posts, authors, tags, and weekly leaderboard with graceful fallbacks when the database is offline.
 - **Post View** – sticky share bar, author spotlight, “Stay in the loop” email capture card, “Browse topics” tag cloud.
