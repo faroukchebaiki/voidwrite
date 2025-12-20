@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { randomUUID } from 'crypto';
 import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
   }
 
   const subscribers = await db
-    .select({ email: newsletterSubscribers.email, unsubscribeToken: newsletterSubscribers.unsubscribeToken })
+    .select({ id: newsletterSubscribers.id, email: newsletterSubscribers.email, unsubscribeToken: newsletterSubscribers.unsubscribeToken })
     .from(newsletterSubscribers);
   if (subscribers.length === 0) {
     return NextResponse.json({ ok: true, skipped: 'no-subscribers' });
@@ -157,7 +158,21 @@ export async function POST(request: Request) {
 
   const results: Array<{ email: string; delivered: boolean; error?: string }> = [];
   for (const subscriber of subscribers) {
-    const unsubscribeUrl = `${baseUrl}/newsletter/unsubscribe/${subscriber.unsubscribeToken}`;
+    let token = subscriber.unsubscribeToken?.trim();
+    if (!token) {
+      token = randomUUID();
+      try {
+        await db
+          .update(newsletterSubscribers)
+          .set({ unsubscribeToken: token })
+          .where(eq(newsletterSubscribers.id, subscriber.id));
+      } catch (error) {
+        console.error('Failed to backfill unsubscribe token', error);
+        results.push({ email: subscriber.email, delivered: false, error: 'missing unsubscribe token' });
+        continue;
+      }
+    }
+    const unsubscribeUrl = `${baseUrl}/newsletter/unsubscribe/${token}`;
     const { html, text } = renderWeeklyDigestEmail(digestPosts, { rangeLabel, unsubscribeUrl });
     try {
       const { error } = await resend.emails.send({
